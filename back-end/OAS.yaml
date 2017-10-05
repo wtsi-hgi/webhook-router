@@ -15,7 +15,7 @@ paths:
         type: string
     post:
       summary: Location to send webhooks to, in order for them to be routed
-      operationId: server.routeWebhook
+      operationId: server.route_webhook
       responses:
         '200':
           description: Webhook routed correctly
@@ -26,7 +26,7 @@ paths:
   /view-routes:
     get:
       summary: Gets all routes that are configured for given user
-      operationId: server.getAllRoutes
+      operationId: server.get_all_routes
       responses:
         '200':
           description: Returns the given routes
@@ -36,21 +36,10 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/Error"
-  /OAS:
-    get:
-      summary: Gets the OpenAPI Specification
-      operationId: server.getOAS
-      responses:
-        '200':
-          description: Returns the given routes
-        default:
-          description: unexpected error
-          schema:
-            $ref: "#/definitions/Error"
   /add-route:
     post:
       summary: Gets all routes that are configured
-      operationId: server.addRoute
+      operationId: server.add_route
       parameters:
         - name: body
           in: body
