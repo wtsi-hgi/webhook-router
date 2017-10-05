@@ -41,8 +41,9 @@ paths:
       summary: Gets all routes that are configured
       operationId: server.add_route
       parameters:
-        - name: body
+        - name: new_route
           in: body
+          required: true
           schema:
             $ref: "#/definitions/NewRoute"
       responses:
@@ -59,13 +60,13 @@ definitions:
     required:
       - name
       - destination
-      - write-users
+      - write_users
     properties:
       name:
         type: string
       destination:
         type: string
-      write-users:
+      write_users:
         type: array
         items:
           type: string
