@@ -1,0 +1,121 @@
+openapi: "3.0"
+info:
+  version: 1.0.0
+  title: Webhook router
+  license:
+    name: MIT
+servers:
+  - url: 127.0.0.1
+paths:
+  /route/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        description: The token of the route
+        schema:
+          type: string
+    post:
+      summary: Location to send webhooks to, in order for them to be routed
+      operationId: server.routeWebhook
+      responses:
+        '200':
+          description: Webhook routed correctly
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /view-routes:
+    get:
+      summary: Gets all routes that are configured for given user
+      operationId: server.getAllRoutes
+      responses:
+        '200':
+          description: Returns the given routes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Routes"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /OAS:
+    get:
+      summary: Gets the OpenAPI Specification
+      operationId: server.getOAS
+      responses:
+        '200':
+          description: Returns the given routes
+          content:
+            application/json: {}
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /add-route:
+    post:
+      summary: Gets all routes that are configured
+      operationId: server.addRoute
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewRoute"
+      responses:
+        '200':
+          description: Expected response to a valid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Route"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    NewRoute:
+      required:
+        - name
+        - destination
+        - write-users
+      properties:
+        name:
+          type: string
+        destination:
+          type: string
+        write-users:
+          type: array
+          items:
+            type: string
+    Route:
+      allOf:
+        - $ref: "#/components/schemas/Route"
+        - required:
+            - token
+          properties:
+            token:
+              type: string
+    Routes:
+      type: array
+      items:
+        $ref: "#/components/schemas/Route"
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
