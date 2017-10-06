@@ -30,6 +30,9 @@ class Route(Model):
 class AuthException(Exception):
     pass
 
+class InvalidRouteID(Exception):
+    pass
+
 """
 Exceptions:
 
@@ -50,9 +53,7 @@ def get_current_user():
 def token2route(token: str) -> Route:
     routes = Route.select().where(Route.token == token)
     if len(routes) != 1:
-        raise Exception({
-            "error": "Invalid route"
-        }) # TODO can do better than this
+        raise InvalidRouteID() # TODO can do better than this
     else:
         return routes[0]
 
@@ -71,11 +72,13 @@ def route_webhook(token):
         data=flask.request.data)
 
 def patch_route(token, new_info):
-    route = token2route(token)
-    route.update(**new_info).execute()
+    token2route(token).update(**new_info).execute()
 
 def delete_route(token):
-    token2route(token).delete().execute()
+    try:
+        token2route(token).delete().execute()
+    except InvalidRouteID:
+        pass # DELETE requests are supposed to be idempotent
 
 def get_route(token):
     return token2route(token).get_json()
