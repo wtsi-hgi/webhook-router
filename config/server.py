@@ -44,7 +44,7 @@ def get_current_user():
 def token2route(token: str) -> Route:
     routes = Route.select().where(Route.token == token)
     if len(routes) != 1:
-        raise InvalidRouteID() # TODO can do better than this
+        raise InvalidRouteID()
     else:
         return routes[0]
 
@@ -52,13 +52,6 @@ def generate_new_token():
     return str(uuid.uuid4())
 
 # Swagger called functions
-
-def route_webhook(token):
-    route = token2route(token)
-    print(f"Routing request to '{route.destination}'")
-
-    # TODO think about what to do if the destination is invalid
-    # Divert to the other service
 
 def patch_route(token, new_info):
     token2route(token).update(**new_info).execute()
