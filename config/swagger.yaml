@@ -1,10 +1,10 @@
 swagger: "2.0"
 info:
   version: 1.0.0
-  title: Webhook router
+  title: Webhook router config
   license:
     name: MIT
-host: 127.0.0.1
+host: 127.0.0.1:8081
 paths:
   /routes/{token}:
     parameters:
@@ -13,16 +13,6 @@ paths:
         required: true
         description: The token of the route
         type: string
-    post:
-      summary: Routes the post request to the specified location, according to the webhook settings
-      operationId: route_webhook
-      responses:
-        '200':
-          description: Webhook routed correctly
-        default:
-          description: unexpected error
-          schema:
-            $ref: "#/definitions/Error"
     delete:
       summary: Delete the given webhook
       operationId: delete_route

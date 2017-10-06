@@ -1,6 +1,5 @@
 import connexion
 import flask
-import requests
 import uuid
 from urllib.parse import urlparse, urlunparse
 from connexion.resolver import Resolver
@@ -33,14 +32,6 @@ class AuthException(Exception):
 class InvalidRouteID(Exception):
     pass
 
-"""
-Exceptions:
-
-Auth failure
-Invalid token
-Invalid parameters
-"""
-
 # Helper functions
 
 def get_current_user():
@@ -67,9 +58,7 @@ def route_webhook(token):
     print(f"Routing request to '{route.destination}'")
 
     # TODO think about what to do if the destination is invalid
-    requests.post(route.destination,
-        headers=flask.request.headers,
-        data=flask.request.data)
+    # Divert to the other service
 
 def patch_route(token, new_info):
     token2route(token).update(**new_info).execute()
@@ -115,4 +104,12 @@ db.create_tables([Route], True)
 # TODO connect to the database on request sent
 app = connexion.FlaskApp(__name__, specification_dir=".")
 app.add_api('swagger.yaml', resolver=Resolver(resolveSwaggerName))
-app.run(port=8080, host="127.0.0.1")
+app.run(port=8081, host="127.0.0.1")
+
+@app.errorhandler(InvalidRouteID)
+def handle_invalid_routeID():
+    return flask.make_response(flask.jsonify({'error': 'Invalid route ID'}), 404)
+
+@app.errorhandler(AuthException)
+def handle_auth_exception():
+    return flask.make_response(flask.jsonify({'error': 'Invalid credentials'}), 403)
