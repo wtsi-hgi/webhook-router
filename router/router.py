@@ -1,22 +1,40 @@
-import requests
-import connexion
-from connexion.resolver import Resolver
+import aiohttp
+from aiohttp_swagger import *
 from bravado.client import SwaggerClient
-import flask
 
-client = SwaggerClient.from_url('http://127.0.0.1:8080/swagger.json')
+client = SwaggerClient.from_url('http://127.0.0.1:8081/swagger.json')
 
-def route_webhook():
-    route = client.get_route().result()
+async def route_webhook(request):
+    """
+    ---
+    parameters:
+    - name: token
+        in: path
+        required: true
+        description: The token of the route
+        type: string
+    post:
+    summary: Routes the post request to the specified location, according to the webhook \\
+        settings from a configuration server 
+    operationId: route_webhook
+    responses:
+        default:
+        description: The response of the routed webhook
+    """
+    route = client.routes.get_route(token=request.match_info.get("token")).result()
+    async with aiohttp.ClientSession() as session:
+        resp = await session.post(
+            route.destination,
+            headers=request.headers,
+            data=request.data
+        )
+    
+    return resp
 
-    requests.post(route.destination,
-        headers=flask.request.headers,
-        data=flask.request.data)
 
-def resolveSwaggerName(name):
-    return globals()[name]
+app = aiohttp.web.Application()
+app.router.add_route('POST', "/{token}", route_webhook)
 
-# TODO connect to the database on request sent
-app = connexion.FlaskApp(__name__, specification_dir=".")
-app.add_api('swagger.yaml', resolver=Resolver(resolveSwaggerName))
-app.run(port=8080, host="127.0.0.1")
+setup_swagger(app)
+
+aiohttp.web.run_app(app, host="127.0.0.1")
