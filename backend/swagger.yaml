@@ -6,7 +6,7 @@ info:
     name: MIT
 host: 127.0.0.1
 paths:
-  /route/{token}:
+  /routes/{token}:
     parameters:
       - name: token
         in: path
@@ -14,8 +14,8 @@ paths:
         description: The token of the route
         type: string
     post:
-      summary: Location to send webhooks to, in order for them to be routed
-      operationId: server.route_webhook
+      summary: Routes the post request to the specified location, according to the webhook settings
+      operationId: route_webhook
       responses:
         '200':
           description: Webhook routed correctly
@@ -23,10 +23,48 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/Error"
-  /view-routes:
+    delete:
+      summary: Delete the given webhook
+      operationId: delete_route
+      responses:
+        '204':
+          description: Webhook routed correctly
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+    get:
+      summary: Gets the configuration for the given webhook
+      operationId: get_route
+      responses:
+        '200':
+          description: The correct webhook
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+    patch:
+      summary: Edit the configuration of the given webhook
+      operationId: patch_route
+      parameters:
+        - name: new_info
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/PatchRoute"
+      responses:
+        '204':
+          description: Routing patched correctly
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /routes:
     get:
       summary: Gets all routes that are configured for given user
-      operationId: server.get_all_routes
+      operationId: get_all_routes
       responses:
         '200':
           description: Returns the given routes
@@ -39,7 +77,7 @@ paths:
   /add-route:
     post:
       summary: Gets all routes that are configured
-      operationId: server.add_route
+      operationId: add_route
       parameters:
         - name: new_route
           in: body
@@ -47,7 +85,7 @@ paths:
           schema:
             $ref: "#/definitions/NewRoute"
       responses:
-        '200':
+        '201':
           description: Expected response to a valid request
           schema:
             $ref: "#/definitions/Route"
@@ -61,6 +99,16 @@ definitions:
       - name
       - destination
       - write_users
+    properties:
+      name:
+        type: string
+      destination:
+        type: string
+      write_users:
+        type: array
+        items:
+          type: string
+  PatchRoute:
     properties:
       name:
         type: string
