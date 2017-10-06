@@ -1,0 +1,22 @@
+swagger: "2.0"
+info:
+  version: 1.0.0
+  title: Webhook router
+  license:
+    name: MIT
+host: 127.0.0.1
+paths:
+  /{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        description: The token of the route
+        type: string
+    post:
+      summary: Routes the post request to the specified location, according to the webhook \
+        settings from a configuration server 
+      operationId: route_webhook
+      responses:
+        default:
+          description: The response of the routed webhook
