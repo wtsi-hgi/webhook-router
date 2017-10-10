@@ -1,4 +1,5 @@
 import aiohttp
+from aiohttp.web_response import StreamResponse, Response
 from aiohttp_swagger import *
 from bravado.client import SwaggerClient
 
@@ -26,10 +27,18 @@ async def route_webhook(request):
         resp = await session.post(
             route.destination,
             headers=request.headers,
-            data=request.data
+            data=await request.read()
         )
-    
-    return resp
+
+    my_resp = Response(
+        status=resp.status,
+        reason=resp.reason,
+        headers=resp.headers
+    )
+
+    my_resp.body = await resp.read()
+
+    return my_resp
 
 
 app = aiohttp.web.Application()
