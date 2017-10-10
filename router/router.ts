@@ -64,8 +64,6 @@ function routeRequest(request: http.IncomingMessage, response: http.ServerRespon
                 resolve();
             })
 
-            response.removeHeader("Connection");
-
             response.writeHead(<number>forwardedResp.statusCode, forwardedResp.headers);
         });
 
