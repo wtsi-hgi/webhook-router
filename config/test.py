@@ -1,16 +1,3 @@
-import pytest
-import connexion
+from swagger_tester import swagger_test
 
-flask_app = connexion.FlaskApp(__name__)
-flask_app.add_api('swagger.yml')
-
-
-@pytest.fixture(scope='module')
-def client():
-    with flask_app.app.test_client() as c:
-        yield c
-
-
-def test_health(client):
-    response = client.get('/view-routes')
-    assert response.status_code == 200
+swagger_test(app_url='http://127.0.0.1:8081')

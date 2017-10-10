@@ -116,17 +116,15 @@ definitions:
         properties:
           token:
             type: string
+          owner:
+            type: string
   Routes:
     type: array
     items:
       $ref: "#/definitions/Route"
   Error:
     required:
-      - code
-      - message
+      - error
     properties:
-      code:
-        type: integer
-        format: int32
-      message:
+      error:
         type: string

@@ -11,6 +11,7 @@ db = SqliteDatabase('db.db')
 
 class Route(Model):
     owner = CharField()
+    name = CharField()
     destination = CharField()
     write_users = CharField() # Store as a json list for now
     token = CharField()
@@ -20,24 +21,32 @@ class Route(Model):
             "owner": self.owner,
             "destination": self.destination,
             "write_users": json.loads(self.write_users),
-            "token": self.token
+            "token": self.token,
+            "name": self.name
         }
 
     class Meta:
         database = db
 
-class AuthException(Exception):
+class InvalidCredentials(Exception):
+    pass
+
+class NotAuthorised(Exception):
     pass
 
 class InvalidRouteID(Exception):
     pass
 
+class InvalidURL(Exception):
+    pass
+
 # Helper functions
 
 def get_current_user():
+    # TODO do this using proper authentication
     userId = flask.request.headers.get("userId")
     if userId is None:
-        raise AuthException()
+        raise InvalidCredentials()
 
     return userId
 
@@ -51,12 +60,24 @@ def token2route(token: str) -> Route:
 def generate_new_token():
     return str(uuid.uuid4())
 
+def has_write_permission(token):
+    route = token2route(token)
+    current_user = get_current_user()
+
+    return current_user in route.write_users
+
 # Swagger called functions
 
 def patch_route(token, new_info):
+    if not has_write_permission(token):
+        raise InvalidCredentials()
+
     token2route(token).update(**new_info).execute()
 
 def delete_route(token):
+    if not has_write_permission(token):
+        raise InvalidCredentials()
+
     try:
         token2route(token).delete().execute()
     except InvalidRouteID:
@@ -78,12 +99,13 @@ def add_route(new_route):
         else:
             destination = new_route["destination"]
     except SyntaxError:
-        raise Exception("Invalid URL")
+        raise InvalidURL()
 
     route = Route(
         owner=get_current_user(),
         destination=destination,
         write_users=json.dumps(new_route["write_users"]),
+        name=new_route["name"],
         token=generate_new_token())
 
     route.save()
@@ -93,16 +115,25 @@ def add_route(new_route):
 def resolveSwaggerName(name):
     return globals()[name]
 
+db.connect()
 db.create_tables([Route], True)
-# TODO connect to the database on request sent
 app = connexion.FlaskApp(__name__, specification_dir=".")
+
+def handle_invalid_routeID(e):
+    return flask.make_response(flask.jsonify({'error': 'Invalid route ID'}), 404)
+app.add_error_handler(InvalidRouteID, handle_invalid_routeID)
+
+def handle_not_authorised(e):
+    return flask.make_response(flask.jsonify({'error': 'Not Authorised'}), 404)
+app.add_error_handler(NotAuthorised, handle_not_authorised)
+
+def handle_invalid_URL(e):
+    return flask.make_response(flask.jsonify({'error': 'Invalid URL in destination'}), 404)
+app.add_error_handler(InvalidURL, handle_invalid_URL)
+
+def handle_invalid_credentials(e):
+    return flask.make_response(flask.jsonify({'error': 'Invalid credentials'}), 403)
+app.add_error_handler(InvalidCredentials, handle_invalid_credentials)
+
 app.add_api('swagger.yaml', resolver=Resolver(resolveSwaggerName))
 app.run(port=8081, host="127.0.0.1")
-
-@app.errorhandler(InvalidRouteID)
-def handle_invalid_routeID():
-    return flask.make_response(flask.jsonify({'error': 'Invalid route ID'}), 404)
-
-@app.errorhandler(AuthException)
-def handle_auth_exception():
-    return flask.make_response(flask.jsonify({'error': 'Invalid credentials'}), 403)
