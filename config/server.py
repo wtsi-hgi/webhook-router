@@ -1,16 +1,17 @@
+import uuid
+import json
+import argparse
+from urllib.parse import urlparse, urlunparse
+
 import connexion
 import flask
-import uuid
-from urllib.parse import urlparse, urlunparse
 from connexion.resolver import Resolver
-import json
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from functools import wraps
-import argparse
 from flask.testing import FlaskClient
-
 from peewee import CharField, Proxy, Model, SqliteDatabase
+
 
 def get_route_model(db):
     class Route(Model):
@@ -31,15 +32,19 @@ def get_route_model(db):
             database = db
 
     return Route
-    
+
+
 class InvalidCredentials(Exception):
     pass
+
 
 class NotAuthorised(Exception):
     pass
 
+
 class InvalidRouteID(Exception):
     pass
+
 
 class InvalidURL(Exception):
     pass
@@ -47,10 +52,12 @@ class InvalidURL(Exception):
 # Helper functions
 
 # Intended to be called inside Server
+
+
 def _auth_and_log_req(func):
     @wraps(func)
     def new_func(self, *args, **kw_args):
-        current_user = self._get_current_user() # includes auth
+        current_user = self._get_current_user()  # includes auth
 
         self._log_function_call(func.__name__, current_user, args)
 
@@ -58,7 +65,10 @@ def _auth_and_log_req(func):
 
     return new_func
 
+
 google_oauth_clientID = "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.self.apps.googleusercontent.com"
+
+
 class Server:
     def _get_current_user(self):
         token = flask.request.headers.get("Google-Auth-Token")
@@ -76,10 +86,10 @@ class Server:
 
         if token_info["hd"] != "sanger.ac.uk":
             raise InvalidCredentials()
-        
+
         if token_info['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
             raise InvalidCredentials()
-        
+
         return token_info["email"]
 
     def _log_function_call(self, name, user, parameters):
@@ -106,7 +116,7 @@ class Server:
         try:
             self._token2route(token).delete().execute()
         except InvalidRouteID:
-            pass # DELETE requests are supposed to be idempotent
+            pass  # DELETE requests are supposed to be idempotent
 
         return None, 204
 
@@ -169,6 +179,7 @@ class Server:
         self._set_error_handler(InvalidCredentials, "Invalid credentials", 403)
 
         self.app.add_api('swagger.yaml', resolver=Resolver(self.resolve_name), validate_responses=debug)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generates CWL files from the GATK documentation')
