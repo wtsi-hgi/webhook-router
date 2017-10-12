@@ -4,30 +4,34 @@ import uuid
 from urllib.parse import urlparse, urlunparse
 from connexion.resolver import Resolver
 import json
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from functools import wraps
+import argparse
+from flask.testing import FlaskClient
 
-from peewee import *
+from peewee import CharField, Proxy, Model, SqliteDatabase
 
-db = SqliteDatabase('db.db')
+def get_route_model(db):
+    class Route(Model):
+        owner = CharField()
+        name = CharField()
+        destination = CharField()
+        token = CharField()
 
-class Route(Model):
-    owner = CharField()
-    name = CharField()
-    destination = CharField()
-    write_users = CharField() # Store as a json list for now
-    token = CharField()
+        def get_json(self):
+            return {
+                "owner": self.owner,
+                "destination": self.destination,
+                "token": self.token,
+                "name": self.name
+            }
 
-    def get_json(self):
-        return {
-            "owner": self.owner,
-            "destination": self.destination,
-            "write_users": json.loads(self.write_users),
-            "token": self.token,
-            "name": self.name
-        }
+        class Meta:
+            database = db
 
-    class Meta:
-        database = db
-
+    return Route
+    
 class InvalidCredentials(Exception):
     pass
 
@@ -42,98 +46,137 @@ class InvalidURL(Exception):
 
 # Helper functions
 
-def get_current_user():
-    # TODO do this using proper authentication
-    userId = flask.request.headers.get("userId")
-    if userId is None:
-        raise InvalidCredentials()
+# Intended to be called inside Server
+def _auth_and_log_req(func):
+    @wraps(func)
+    def new_func(self, *args, **kw_args):
+        current_user = self._get_current_user() # includes auth
 
-    return userId
+        self._log_function_call(func.__name__, current_user, args)
 
-def token2route(token: str) -> Route:
-    routes = Route.select().where(Route.token == token)
-    if len(routes) != 1:
-        raise InvalidRouteID()
-    else:
-        return routes[0]
+        return func(self, *args, **kw_args)
 
-def generate_new_token():
-    return str(uuid.uuid4())
+    return new_func
 
-def has_write_permission(token):
-    route = token2route(token)
-    current_user = get_current_user()
+google_oauth_clientID = "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.self.apps.googleusercontent.com"
+class Server:
+    def _get_current_user(self):
+        token = flask.request.headers.get("Google-Auth-Token")
 
-    return current_user in route.write_users
+        if self.debug and token == "test_user":
+            return "test_user@sanger.ac.uk"
 
-# Swagger called functions
+        if token is None:
+            raise InvalidCredentials()
 
-def patch_route(token, new_info):
-    if not has_write_permission(token):
-        raise InvalidCredentials()
+        try:
+            token_info = id_token.verify_oauth2_token(token, requests.Request(), google_oauth_clientID)
+        except ValueError as ve:
+            raise InvalidCredentials() from ve
 
-    token2route(token).update(**new_info).execute()
+        if token_info["hd"] != "sanger.ac.uk":
+            raise InvalidCredentials()
+        
+        if token_info['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+            raise InvalidCredentials()
+        
+        return token_info["email"]
 
-def delete_route(token):
-    if not has_write_permission(token):
-        raise InvalidCredentials()
+    def _log_function_call(self, name, user, parameters):
+        print(f"{user}: {name}({parameters})")
 
-    try:
-        token2route(token).delete().execute()
-    except InvalidRouteID:
-        pass # DELETE requests are supposed to be idempotent
-
-def get_route(token):
-    return token2route(token).get_json()
-
-def get_all_routes():
-    routes = Route.select().where(Route.owner == get_current_user())
-
-    return [route.get_json() for route in routes]
-
-def add_route(new_route):
-    try:
-        url_ob = urlparse(new_route["destination"])
-        if url_ob.scheme == '':
-            destination = "http://" + new_route["destination"]
+    def _token2route(self, token: str) -> get_route_model(None):
+        routes = self.Route.select().where(self.Route.token == token)
+        if len(routes) != 1:
+            raise InvalidRouteID()
         else:
-            destination = new_route["destination"]
-    except SyntaxError:
-        raise InvalidURL()
+            return routes[0]
 
-    route = Route(
-        owner=get_current_user(),
-        destination=destination,
-        write_users=json.dumps(new_route["write_users"]),
-        name=new_route["name"],
-        token=generate_new_token())
+    def _generate_new_token(self):
+        return str(uuid.uuid4())
 
-    route.save()
+    # Swagger called functions
 
-    return route.get_json()
+    @_auth_and_log_req
+    def patch_route(self, token, new_info):
+        self._token2route(token).update(**new_info).execute()
 
-def resolveSwaggerName(name):
-    return globals()[name]
+    @_auth_and_log_req
+    def delete_route(self, token):
+        try:
+            self._token2route(token).delete().execute()
+        except InvalidRouteID:
+            pass # DELETE requests are supposed to be idempotent
 
-db.connect()
-db.create_tables([Route], True)
-app = connexion.FlaskApp(__name__, specification_dir=".")
+        return None, 204
 
-def handle_invalid_routeID(e):
-    return flask.make_response(flask.jsonify({'error': 'Invalid route ID'}), 404)
-app.add_error_handler(InvalidRouteID, handle_invalid_routeID)
+    def get_route(self, token):
+        return self._token2route(token).get_json()
 
-def handle_not_authorised(e):
-    return flask.make_response(flask.jsonify({'error': 'Not Authorised'}), 404)
-app.add_error_handler(NotAuthorised, handle_not_authorised)
+    @_auth_and_log_req
+    def get_all_routes(self):
+        routes = self.Route.select().where(self.Route.owner == self._get_current_user())
 
-def handle_invalid_URL(e):
-    return flask.make_response(flask.jsonify({'error': 'Invalid URL in destination'}), 404)
-app.add_error_handler(InvalidURL, handle_invalid_URL)
+        return [route.get_json() for route in routes]
 
-def handle_invalid_credentials(e):
-    return flask.make_response(flask.jsonify({'error': 'Invalid credentials'}), 403)
-app.add_error_handler(InvalidCredentials, handle_invalid_credentials)
+    @_auth_and_log_req
+    def add_route(self, new_route):
+        try:
+            url_ob = urlparse(new_route["destination"])
+            if url_ob.scheme == '':
+                destination = "http://" + new_route["destination"]
+            else:
+                destination = new_route["destination"]
+        except SyntaxError:
+            raise InvalidURL()
 
-app.add_api('swagger.yaml', resolver=Resolver(resolveSwaggerName))
-app.run(port=8081, host="127.0.0.1")
+        route = self.Route(
+            owner=self._get_current_user(),
+            destination=destination,
+            name=new_route["name"],
+            token=self._generate_new_token())
+
+        route.save()
+
+        return route.get_json(), 201
+
+    def close(self):
+        self.db.close()
+
+    def resolve_name(self, name):
+        return getattr(self, name)
+
+    def _set_error_handler(self, error_class, error_message, error_code):
+        def handler(error):
+            return flask.make_response(flask.jsonify({'error': error_message}), error_code)
+        self.app.add_error_handler(error_class, handler)
+
+    def __init__(self, debug, memory_db):
+        if memory_db:
+            self.db = SqliteDatabase(':memory:')
+        else:
+            self.db = SqliteDatabase('db.db')
+
+        self.debug = debug
+        self.db.connect()
+        self.Route = get_route_model(self.db)
+        self.db.create_tables([self.Route], True)
+        self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
+
+        self._set_error_handler(InvalidRouteID, "Invalid route ID", 404)
+        self._set_error_handler(NotAuthorised, "Not Authorised", 403)
+        self._set_error_handler(InvalidURL, "Invalid URL in destination", 400)
+        self._set_error_handler(InvalidCredentials, "Invalid credentials", 403)
+
+        self.app.add_api('swagger.yaml', resolver=Resolver(self.resolve_name), validate_responses=debug)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Generates CWL files from the GATK documentation')
+    parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
+    parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
+    parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
+
+    options = parser.parse_args()
+
+    server = Server(options.debug, False)
+    server.app.run(port=options.port, host=options.host)
