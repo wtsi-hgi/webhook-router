@@ -88,26 +88,17 @@ definitions:
     required:
       - name
       - destination
-      - write_users
     properties:
       name:
         type: string
       destination:
         type: string
-      write_users:
-        type: array
-        items:
-          type: string
   PatchRoute:
     properties:
       name:
         type: string
       destination:
         type: string
-      write_users:
-        type: array
-        items:
-          type: string
   Route:
     allOf:
       - $ref: "#/definitions/NewRoute"
