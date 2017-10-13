@@ -48,23 +48,9 @@ class InvalidURL(Exception):
 
 google_oauth_clientID = "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.self.apps.googleusercontent.com"
 
-class Server:
-    def _auth_request(func):
-        @wraps(func)
-        def new_func(self, *args, **kw_args):
-            current_user = self._get_current_user()  # includes auth
-
-            self._log_function_call(func.__name__, current_user, args)
-
-            return func(self, *args, **kw_args)
-
-        return new_func
-
-    def _get_current_user(self):
+class Auth:
+    def get_user(self):
         token = flask.request.headers.get("Google-Auth-Token")
-
-        if self.debug and token == "test_user":
-            return "test_user@sanger.ac.uk"
 
         if token is None:
             raise InvalidCredentials()
@@ -81,6 +67,18 @@ class Server:
             raise InvalidCredentials()
 
         return token_info["email"]
+
+class Server:
+    def _auth_request(func):
+        @wraps(func)
+        def new_func(self, *args, **kw_args):
+            current_user = self.auth.get_user()  # includes auth
+
+            self._log_function_call(func.__name__, current_user, args)
+
+            return func(self, *args, **kw_args)
+
+        return new_func
 
     def _log_function_call(self, name, user, parameters):
         # TODO
@@ -118,7 +116,7 @@ class Server:
 
     @_auth_request
     def get_all_routes(self):
-        routes = self.Route.select().where(self.Route.owner == self._get_current_user())
+        routes = self.Route.select().where(self.Route.owner == self.auth.get_user())
 
         return [route.get_json() for route in routes]
 
@@ -134,7 +132,7 @@ class Server:
             raise InvalidURL()
 
         route = self.Route(
-            owner=self._get_current_user(),
+            owner=self.auth.get_user(),
             destination=destination,
             name=new_route["name"],
             token=self._generate_new_token())
@@ -165,13 +163,9 @@ class Server:
             return flask.make_response(flask.jsonify({'error': error_message}), error_code)
         self.app.add_error_handler(error_class, handler)
 
-    def __init__(self, debug, memory_db):
-        if memory_db:
-            self.db = SqliteDatabase(':memory:')
-        else:
-            self.db = SqliteDatabase('db.db')
-
-        self.debug = debug
+    def __init__(self, debug, db, auth):
+        self.db = db
+        self.auth = auth
         self.db.connect()
         self.Route = get_route_model(self.db)
         self.db.create_tables([self.Route], True)
@@ -193,5 +187,10 @@ if __name__ == "__main__":
 
     options = parser.parse_args()
 
-    server = Server(options.debug, False)
+    server = Server(
+        debug=options.debug,
+        db=SqliteDatabase(':memory:') if options.debug else SqliteDatabase('db.db'),
+        auth=Auth()
+    )
+
     server.app.run(port=options.port, host=options.host)

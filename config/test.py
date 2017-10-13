@@ -1,9 +1,9 @@
 import json
 
-from swagger_tester import swagger_test
-from flask.testing import FlaskClient
 from server import Server
+from flask.testing import FlaskClient
 import pytest
+from peewee import SqliteDatabase
 
 auth = {
     "headers": {
@@ -11,8 +11,34 @@ auth = {
     }
 }
 
-@pytest.fixture(autouse=True)
-def test_token(router_app: FlaskClient) -> str:
+class TestAuth:
+    def get_user(self):
+        return "test_user@sanger.ac.uk"
+
+@pytest.fixture()
+def webhook_server():
+    server = Server(
+        debug=True,
+        db=SqliteDatabase(':memory:'),
+        auth=TestAuth()
+    )
+    yield server
+    server.close()
+
+@pytest.fixture()
+def router_app(webhook_server):
+    return webhook_server.app.app.test_client()  # type: FlaskClient
+
+@pytest.fixture()
+def test_token(router_app: FlaskClient, webhook_server: Server) -> str:
+    new_route = webhook_server.add_route({
+        "name": "route",
+        "destination": "127.0.0.1"
+    })
+    
+    return new_route[0]["token"]
+
+def test_add_route(router_app: FlaskClient):
     add_route_resp = router_app.post(
         "/add-route",
         data=json.dumps({
@@ -24,19 +50,6 @@ def test_token(router_app: FlaskClient) -> str:
     )
 
     assert add_route_resp.status_code == 201
-
-    return json.loads(add_route_resp.data)["token"]
-
-@pytest.fixture()
-def webhook_server():
-    server = Server(debug=True, memory_db=True)
-    yield server
-    server.close()
-
-@pytest.fixture()
-def router_app(webhook_server):
-    return webhook_server.app.app.test_client()  # type: FlaskClient
-
 
 def test_get(router_app: FlaskClient, test_token: str):
     assert router_app.get(f"/routes/{test_token}").status_code == 200
@@ -54,7 +67,7 @@ def test_patch(router_app: FlaskClient, test_token: str):
 
     assert json.loads(router_app.get(f"/routes/{test_token}").data)["name"] == "new-name"
 
-
+@pytest.mark.usefixtures("test_token")
 def test_get_all(router_app: FlaskClient):
     all_routes_resp = router_app.get("/routes", **auth)
 
