@@ -1,16 +1,13 @@
 import uuid
-import json
 import argparse
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse
+from functools import wraps
 
 import connexion
 import flask
-from connexion.resolver import Resolver
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from functools import wraps
-from flask.testing import FlaskClient
-from peewee import CharField, Proxy, Model, SqliteDatabase
+from peewee import CharField, Model, SqliteDatabase
 
 
 def get_route_model(db):
@@ -53,23 +50,20 @@ class InvalidURL(Exception):
 
 # Intended to be called inside Server
 
-
-def _auth_and_log_req(func):
-    @wraps(func)
-    def new_func(self, *args, **kw_args):
-        current_user = self._get_current_user()  # includes auth
-
-        self._log_function_call(func.__name__, current_user, args)
-
-        return func(self, *args, **kw_args)
-
-    return new_func
-
-
 google_oauth_clientID = "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.self.apps.googleusercontent.com"
 
-
 class Server:
+    def _auth_and_log_req(func):
+        @wraps(func)
+        def new_func(self, *args, **kw_args):
+            current_user = self._get_current_user()  # includes auth
+
+            self._log_function_call(func.__name__, current_user, args)
+
+            return func(self, *args, **kw_args)
+
+        return new_func
+
     def _get_current_user(self):
         token = flask.request.headers.get("Google-Auth-Token")
 
@@ -178,7 +172,7 @@ class Server:
         self._set_error_handler(InvalidURL, "Invalid URL in destination", 400)
         self._set_error_handler(InvalidCredentials, "Invalid credentials", 403)
 
-        self.app.add_api('swagger.yaml', resolver=Resolver(self.resolve_name), validate_responses=debug)
+        self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self.resolve_name), validate_responses=debug)
 
 
 if __name__ == "__main__":

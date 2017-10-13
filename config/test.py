@@ -1,16 +1,15 @@
-from swagger_tester import swagger_test
-from server import Server
-from flask import Response
 import json
-import pytest
+
+from swagger_tester import swagger_test
 from flask.testing import FlaskClient
+from server import Server
+import pytest
 
 auth = {
     "headers": {
         "Google-Auth-Token": "test_user"
     }
 }
-
 
 @pytest.fixture(autouse=True)
 def test_token(router_app: FlaskClient) -> str:
