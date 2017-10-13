@@ -46,14 +46,10 @@ class InvalidRouteID(Exception):
 class InvalidURL(Exception):
     pass
 
-# Helper functions
-
-# Intended to be called inside Server
-
 google_oauth_clientID = "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.self.apps.googleusercontent.com"
 
 class Server:
-    def _auth_and_log_req(func):
+    def _auth_request(func):
         @wraps(func)
         def new_func(self, *args, **kw_args):
             current_user = self._get_current_user()  # includes auth
@@ -87,7 +83,8 @@ class Server:
         return token_info["email"]
 
     def _log_function_call(self, name, user, parameters):
-        print(f"{user}: {name}({parameters})")
+        # TODO
+        pass
 
     def _token2route(self, token: str) -> get_route_model(None):
         routes = self.Route.select().where(self.Route.token == token)
@@ -101,11 +98,13 @@ class Server:
 
     # Swagger called functions
 
-    @_auth_and_log_req
+    @_auth_request
     def patch_route(self, token, new_info):
         self._token2route(token).update(**new_info).execute()
 
-    @_auth_and_log_req
+        return None, 204
+
+    @_auth_request
     def delete_route(self, token):
         try:
             self._token2route(token).delete().execute()
@@ -117,13 +116,13 @@ class Server:
     def get_route(self, token):
         return self._token2route(token).get_json()
 
-    @_auth_and_log_req
+    @_auth_request
     def get_all_routes(self):
         routes = self.Route.select().where(self.Route.owner == self._get_current_user())
 
         return [route.get_json() for route in routes]
 
-    @_auth_and_log_req
+    @_auth_request
     def add_route(self, new_route):
         try:
             url_ob = urlparse(new_route["destination"])
@@ -143,6 +142,17 @@ class Server:
         route.save()
 
         return route.get_json(), 201
+
+    @_auth_request
+    def regenerate_token(self, token):
+        route = self._token2route(token)
+        new_token = self._generate_new_token()
+        route.update(token=new_token).execute()
+
+        return {
+            **route.get_json(),
+            "token": new_token
+        }
 
     def close(self):
         self.db.close()

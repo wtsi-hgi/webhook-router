@@ -51,6 +51,25 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/Error"
+  /routes/{token}/regenerate:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        description: The token of the route
+        type: string
+    post:
+      summary: Regenerates the token for the given route
+      operationId: regenerate_token
+      responses:
+        '200':
+          description: Successful regeneration, returns json data of the new route
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
   /routes:
     get:
       summary: Gets all routes that are configured for given user

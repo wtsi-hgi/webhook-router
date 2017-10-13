@@ -27,13 +27,15 @@ def test_token(router_app: FlaskClient) -> str:
 
     return json.loads(add_route_resp.data)["token"]
 
+@pytest.fixture()
+def webhook_server():
+    server = Server(debug=True, memory_db=True)
+    yield server
+    server.close()
 
 @pytest.fixture()
-def router_app():
-    server = Server(debug=True, memory_db=True)
-    app = server.app.app.test_client()  # type: FlaskClient
-    yield app
-    server.close()
+def router_app(webhook_server):
+    return webhook_server.app.app.test_client()  # type: FlaskClient
 
 
 def test_get(router_app: FlaskClient, test_token: str):
@@ -48,7 +50,7 @@ def test_patch(router_app: FlaskClient, test_token: str):
         }),
         content_type='application/json',
         **auth
-    ).status_code == 200
+    ).status_code == 204
 
     assert json.loads(router_app.get(f"/routes/{test_token}").data)["name"] == "new-name"
 
@@ -66,3 +68,10 @@ def test_delete(router_app: FlaskClient, test_token: str):
     assert router_app.delete(f"/routes/{test_token}", **auth).status_code == 204
 
     assert len(json.loads(router_app.get("/routes", **auth).data)) == 0
+
+
+def test_regenerate(router_app: FlaskClient, test_token: str):
+    resp = router_app.post(f"/routes/{test_token}/regenerate", **auth)
+
+    assert resp.status_code == 200
+    assert json.loads(resp.data)["token"] != test_token
