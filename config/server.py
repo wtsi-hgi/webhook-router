@@ -29,7 +29,7 @@ def get_route_model(db: Database):
 def _helper() -> get_route_model:
     return None
 
-Route = _helper()
+RouteType = _helper()
 
 class StatusCodes:
     CREATED = 201
@@ -42,7 +42,7 @@ class StatusCodes:
 """
 Gets the json respresentation of given route, for returning to the user
 """
-def get_route_json(route: Route):
+def get_route_json(route: RouteType):
     return model_to_dict(route)
 
 class InvalidCredentialsError(Exception):
@@ -92,14 +92,15 @@ class RouterDataMapper:
     def __init__(self, Route: get_route_model):
         self._Route = Route
 
-    def _get_route_from_token(self, token: str) -> Route:
+    def _get_route_from_token(self, token: str) -> RouteType:
         routes = self._Route.select().where(self._Route.token == token)
         if len(routes) != 1:
             raise InvalidRouteIDError()
         else:
             return routes[0]
     
-    def _generate_new_token(self):
+    @staticmethod
+    def _generate_new_token():
         return str(uuid.uuid4())
 
     def update(self, token, new_info):
@@ -119,7 +120,7 @@ class RouterDataMapper:
             owner=owner,
             destination=destination,
             name=name,
-            token=self._generate_new_token())
+            token=RouterDataMapper._generate_new_token())
 
         route.save()
 
@@ -127,7 +128,7 @@ class RouterDataMapper:
 
     def regenerate_token(self, token):
         route = self._get_route_from_token(token)
-        new_token = self._generate_new_token()
+        new_token = RouterDataMapper._generate_new_token()
         route.update(token=new_token).execute()
 
         return {
