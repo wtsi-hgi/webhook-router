@@ -8,8 +8,12 @@ import flask
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from peewee import CharField, Model, SqliteDatabase
+from playhouse.shortcuts import model_to_dict
+from typing import TypeVar
 
-
+"""
+Gets the Route model for a given database (works around peewee's irregularities)
+"""
 def get_route_model(db):
     class Route(Model):
         owner = CharField()
@@ -17,19 +21,22 @@ def get_route_model(db):
         destination = CharField()
         token = CharField()
 
-        def get_json(self):
-            return {
-                "owner": self.owner,
-                "destination": self.destination,
-                "token": self.token,
-                "name": self.name
-            }
-
         class Meta:
             database = db
 
     return Route
 
+# Generate a Route type
+def _helper() -> get_route_model:
+    return None
+
+Route = _helper()
+
+"""
+Gets the json respresentation of given route, for returning to the user
+"""
+def get_route_json(route: Route):
+    return model_to_dict(route)
 
 class InvalidCredentials(Exception):
     pass
@@ -63,7 +70,7 @@ class Auth:
         if token_info["hd"] != "sanger.ac.uk":
             raise InvalidCredentials()
 
-        if token_info['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+        if token_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
             raise InvalidCredentials()
 
         return token_info["email"]
@@ -112,13 +119,13 @@ class Server:
         return None, 204
 
     def get_route(self, token):
-        return self._token2route(token).get_json()
+        return get_route_json(self._token2route(token))
 
     @_auth_request
     def get_all_routes(self):
         routes = self.Route.select().where(self.Route.owner == self.auth.get_user())
 
-        return [route.get_json() for route in routes]
+        return [get_route_json(route) for route in routes]
 
     @_auth_request
     def add_route(self, new_route):
@@ -139,7 +146,7 @@ class Server:
 
         route.save()
 
-        return route.get_json(), 201
+        return get_route_json(route), 201
 
     @_auth_request
     def regenerate_token(self, token):
@@ -148,7 +155,7 @@ class Server:
         route.update(token=new_token).execute()
 
         return {
-            **route.get_json(),
+            **get_route_json(route),
             "token": new_token
         }
 
