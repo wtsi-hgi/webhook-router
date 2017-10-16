@@ -1,20 +1,20 @@
 import uuid
 import argparse
 from urllib.parse import urlparse
-from functools import wraps
+from functools import wraps, partial
 
 import connexion
 import flask
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from peewee import CharField, Model, SqliteDatabase
+from peewee import CharField, Model, SqliteDatabase, Database
 from playhouse.shortcuts import model_to_dict
 from typing import TypeVar
 
 """
 Gets the Route model for a given database (works around peewee's irregularities)
 """
-def get_route_model(db):
+def get_route_model(db: Database):
     class Route(Model):
         owner = CharField()
         name = CharField()
@@ -53,37 +53,39 @@ class InvalidRouteID(Exception):
 class InvalidURL(Exception):
     pass
 
-class TestAuth:
-    def get_user(self):
-        return "test_user@sanger.ac.uk"
+"""
+Test auth function
+"""
+def test_auth():
+    return "test_user@sanger.ac.uk"
 
-google_oauth_clientID = "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.self.apps.googleusercontent.com"
+"""
+Authenticate using google authentication
+"""
+def google_auth(google_oauth_clientID):
+    token = flask.request.headers.get("Google-Auth-Token")
 
-class Auth:
-    def get_user(self):
-        token = flask.request.headers.get("Google-Auth-Token")
+    if token is None:
+        raise InvalidCredentials()
 
-        if token is None:
-            raise InvalidCredentials()
+    try:
+        token_info = id_token.verify_oauth2_token(token, requests.Request(), google_oauth_clientID)
+    except ValueError as e:
+        raise InvalidCredentials() from e
 
-        try:
-            token_info = id_token.verify_oauth2_token(token, requests.Request(), google_oauth_clientID)
-        except ValueError as e:
-            raise InvalidCredentials() from e
+    if token_info["hd"] != "sanger.ac.uk":
+        raise InvalidCredentials()
 
-        if token_info["hd"] != "sanger.ac.uk":
-            raise InvalidCredentials()
+    if token_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
+        raise InvalidCredentials()
 
-        if token_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
-            raise InvalidCredentials()
-
-        return token_info["email"]
+    return token_info["email"]
 
 class Server:
     def _auth_request(func):
         @wraps(func)
         def new_func(self, *args, **kw_args):
-            current_user = self.auth.get_user()  # includes auth
+            current_user = self.auth()  # includes auth
 
             self._log_function_call(func.__name__, current_user, args)
 
@@ -127,7 +129,7 @@ class Server:
 
     @_auth_request
     def get_all_routes(self):
-        routes = self.Route.select().where(self.Route.owner == self.auth.get_user())
+        routes = self.Route.select().where(self.Route.owner == self.auth())
 
         return [get_route_json(route) for route in routes]
 
@@ -143,7 +145,7 @@ class Server:
             destination = new_route["destination"]
 
         route = self.Route(
-            owner=self.auth.get_user(),
+            owner=self.auth(),
             destination=destination,
             name=new_route["name"],
             token=self._generate_new_token())
@@ -190,11 +192,13 @@ class Server:
         self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self.resolve_name), validate_responses=True)
 
 
-def main(debug, port, host):
+def main(debug: bool, port: int, host: str, client_id: str=None):
+    if not debug and not client_id:
+        raise TypeError("server: main(...) - debug=False requires client_id to have a value")
     server = Server(
         debug=debug,
         db=SqliteDatabase('db.db'),
-        auth=TestAuth() if options.debug else Auth()
+        auth=test_auth if debug else partial(google_auth, client_id)
     )
 
     server.app.run(port=port, host=host)
@@ -204,6 +208,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
+    parser.add_argument("--client_id", help="Google client ID for oauth authentication", default="127.0.0.1")
 
     options = parser.parse_args()
 

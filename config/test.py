@@ -1,6 +1,6 @@
 import json
 
-from server import Server
+from server import Server, test_auth
 from flask.testing import FlaskClient
 import pytest
 from peewee import SqliteDatabase
@@ -11,16 +11,12 @@ auth = {
     }
 }
 
-class TestAuth:
-    def get_user(self):
-        return "test_user@sanger.ac.uk"
-
 @pytest.fixture()
 def webhook_server():
     server = Server(
         debug=True,
         db=SqliteDatabase(':memory:'),
-        auth=TestAuth()
+        auth=test_auth
     )
     yield server
     server.close()
