@@ -1,6 +1,6 @@
 import json
 
-from server import Server, test_auth
+from .server import Server, test_auth
 from flask.testing import FlaskClient
 import pytest
 from peewee import SqliteDatabase
