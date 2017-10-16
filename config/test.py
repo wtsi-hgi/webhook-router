@@ -26,7 +26,7 @@ def router_app(webhook_server):
     return webhook_server.app.app.test_client()  # type: FlaskClient
 
 @pytest.fixture()
-def test_token(router_app: FlaskClient, webhook_server: Server) -> str:
+def test_token(webhook_server: Server) -> str:
     new_route = webhook_server.add_route({
         "name": "route",
         "destination": "127.0.0.1"
