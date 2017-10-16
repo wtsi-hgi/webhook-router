@@ -38,19 +38,19 @@ Gets the json respresentation of given route, for returning to the user
 def get_route_json(route: Route):
     return model_to_dict(route)
 
-class InvalidCredentials(Exception):
+class InvalidCredentialsError(Exception):
     pass
 
 
-class NotAuthorised(Exception):
+class NotAuthorisedError(Exception):
     pass
 
 
-class InvalidRouteID(Exception):
+class InvalidRouteIDError(Exception):
     pass
 
 
-class InvalidURL(Exception):
+class InvalidURLError(Exception):
     pass
 
 """
@@ -66,18 +66,18 @@ def google_auth(google_oauth_clientID):
     token = flask.request.headers.get("Google-Auth-Token")
 
     if token is None:
-        raise InvalidCredentials()
+        raise InvalidCredentialsError()
 
     try:
         token_info = id_token.verify_oauth2_token(token, requests.Request(), google_oauth_clientID)
     except ValueError as e:
-        raise InvalidCredentials() from e
+        raise InvalidCredentialsError() from e
 
     if token_info["hd"] != "sanger.ac.uk":
-        raise InvalidCredentials()
+        raise InvalidCredentialsError()
 
     if token_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
-        raise InvalidCredentials()
+        raise InvalidCredentialsError()
 
     return token_info["email"]
 
@@ -100,7 +100,7 @@ class Server:
     def _token2route(self, token: str) -> get_route_model(None):
         routes = self.Route.select().where(self.Route.token == token)
         if len(routes) != 1:
-            raise InvalidRouteID()
+            raise InvalidRouteIDError()
         else:
             return routes[0]
 
@@ -119,7 +119,7 @@ class Server:
     def delete_route(self, token):
         try:
             self._token2route(token).delete().execute()
-        except InvalidRouteID:
+        except InvalidRouteIDError:
             pass  # DELETE requests are supposed to be idempotent
 
         return None, 204
@@ -138,7 +138,7 @@ class Server:
         try:
             url_ob = urlparse(new_route["destination"])
         except SyntaxError:
-            raise InvalidURL()
+            raise InvalidURLError()
         if url_ob.scheme == '':
             destination = "http://" + new_route["destination"]
         else:
@@ -184,10 +184,10 @@ class Server:
         self.db.create_tables([self.Route], True)
         self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
 
-        self._set_error_handler(InvalidRouteID, "Invalid route ID", 404)
-        self._set_error_handler(NotAuthorised, "Not Authorised", 403)
-        self._set_error_handler(InvalidURL, "Invalid URL in destination", 400)
-        self._set_error_handler(InvalidCredentials, "Invalid credentials", 403)
+        self._set_error_handler(InvalidRouteIDError, "Invalid route ID", 404)
+        self._set_error_handler(NotAuthorisedError, "Not Authorised", 403)
+        self._set_error_handler(InvalidURLError, "Invalid URL in destination", 400)
+        self._set_error_handler(InvalidCredentialsError, "Invalid credentials", 403)
 
         self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self.resolve_name), validate_responses=True)
 
