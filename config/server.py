@@ -53,6 +53,10 @@ class InvalidRouteID(Exception):
 class InvalidURL(Exception):
     pass
 
+class TestAuth:
+    def get_user(self):
+        return "test_user@sanger.ac.uk"
+
 google_oauth_clientID = "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.self.apps.googleusercontent.com"
 
 class Auth:
@@ -185,6 +189,14 @@ class Server:
 
         self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self.resolve_name), validate_responses=debug)
 
+def main(debug, port, host):
+    server = Server(
+        debug=debug,
+        db=SqliteDatabase('db.db'),
+        auth=TestAuth() if options.debug else Auth()
+    )
+
+    server.app.run(port=port, host=host)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generates CWL files from the GATK documentation')
@@ -194,10 +206,4 @@ if __name__ == "__main__":
 
     options = parser.parse_args()
 
-    server = Server(
-        debug=options.debug,
-        db=SqliteDatabase(':memory:') if options.debug else SqliteDatabase('db.db'),
-        auth=Auth()
-    )
-
-    server.app.run(port=options.port, host=options.host)
+    main(options.debug, options.port, options.host)
