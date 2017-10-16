@@ -198,6 +198,12 @@ class Server:
             return flask.make_response(flask.jsonify({'error': error_message}), error_code)
         self.app.add_error_handler(error_class, handler)
 
+    def _set_error_handlers(self):
+        self._set_error_handler(InvalidRouteIDError, "Invalid route ID", StatusCodes.NOT_FOUND)
+        self._set_error_handler(NotAuthorisedError, "Not Authorised", StatusCodes.FORBIDDEN)
+        self._set_error_handler(InvalidURLError, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
+        self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
+
     def __init__(self, debug, db, auth):
         self.db = db
         self.auth = auth
@@ -207,12 +213,9 @@ class Server:
         self.db.create_tables([Route], True)
         self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
 
-        self._set_error_handler(InvalidRouteIDError, "Invalid route ID", StatusCodes.NOT_FOUND)
-        self._set_error_handler(NotAuthorisedError, "Not Authorised", StatusCodes.FORBIDDEN)
-        self._set_error_handler(InvalidURLError, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
-        self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
+        self._set_error_handlers()
 
-        self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self.resolve_name), validate_responses=True)
+        self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self._resolve_name), validate_responses=True)
 
 
 def main(debug: bool, port: int, host: str, client_id: str=None):
