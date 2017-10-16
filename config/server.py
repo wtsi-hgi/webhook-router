@@ -68,8 +68,8 @@ class Auth:
 
         try:
             token_info = id_token.verify_oauth2_token(token, requests.Request(), google_oauth_clientID)
-        except ValueError as ve:
-            raise InvalidCredentials() from ve
+        except ValueError as e:
+            raise InvalidCredentials() from e
 
         if token_info["hd"] != "sanger.ac.uk":
             raise InvalidCredentials()
@@ -135,12 +135,12 @@ class Server:
     def add_route(self, new_route):
         try:
             url_ob = urlparse(new_route["destination"])
-            if url_ob.scheme == '':
-                destination = "http://" + new_route["destination"]
-            else:
-                destination = new_route["destination"]
         except SyntaxError:
             raise InvalidURL()
+        if url_ob.scheme == '':
+            destination = "http://" + new_route["destination"]
+        else:
+            destination = new_route["destination"]
 
         route = self.Route(
             owner=self.auth.get_user(),
@@ -187,7 +187,8 @@ class Server:
         self._set_error_handler(InvalidURL, "Invalid URL in destination", 400)
         self._set_error_handler(InvalidCredentials, "Invalid credentials", 403)
 
-        self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self.resolve_name), validate_responses=debug)
+        self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self.resolve_name), validate_responses=True)
+
 
 def main(debug, port, host):
     server = Server(
