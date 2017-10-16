@@ -9,6 +9,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests
 from peewee import CharField, Model, SqliteDatabase, Database
 from playhouse.shortcuts import model_to_dict
+from typing import Type, Callable
 
 """
 Gets the Route model for a given database (works around peewee's irregularities)
@@ -69,7 +70,7 @@ def test_auth():
 """
 Authenticate using google authentication
 """
-def google_auth(google_oauth_clientID):
+def google_auth(google_oauth_clientID: str):
     token = flask.request.headers.get("Google-Auth-Token")
 
     if token is None:
@@ -89,7 +90,7 @@ def google_auth(google_oauth_clientID):
     return token_info["email"]
 
 class RouterDataMapper:
-    def __init__(self, Route: get_route_model):
+    def __init__(self, Route: Type[Route]):
         self._Route = Route
 
     def _get_route_from_token(self, token: str) -> RouteType:
@@ -103,19 +104,19 @@ class RouterDataMapper:
     def _generate_new_token():
         return str(uuid.uuid4())
 
-    def update(self, token, new_info):
+    def update(self, token: str, new_info: object):
         self._get_route_from_token(token).update(**new_info).execute()
 
-    def delete(self, token):
+    def delete(self, token: str):
         self._get_route_from_token(token).delete().execute()
 
-    def get(self, token):
+    def get(self, token: str):
         return self._get_route_from_token(token)
 
-    def get_all(self, user):
+    def get_all(self, user: str):
         return self._Route.select().where(self._Route.owner == user)
 
-    def add(self, owner, destination, name):
+    def add(self, owner: str, destination: str, name: str):
         route = self._Route(
             owner=owner,
             destination=destination,
@@ -126,7 +127,7 @@ class RouterDataMapper:
 
         return route
 
-    def regenerate_token(self, token):
+    def regenerate_token(self, token: str):
         route = self._get_route_from_token(token)
         new_token = RouterDataMapper._generate_new_token()
         route.update(token=new_token).execute()
@@ -137,13 +138,13 @@ class RouterDataMapper:
         }
 
 class Server:
-    def patch_route(self, token, new_info):
+    def patch_route(self, token: str, new_info: object):
         self._auth()
         self._data_mapper.update(token, new_info)
 
         return None, StatusCodes.NO_CONTENT
 
-    def delete_route(self, token):
+    def delete_route(self, token: str):
         self._auth()
 
         try:
@@ -153,7 +154,7 @@ class Server:
 
         return None, StatusCodes.NO_CONTENT
 
-    def get_route(self, token):
+    def get_route(self, token: str):
         return get_route_json(self._data_mapper.get(token))
 
     def get_all_routes(self):
@@ -162,7 +163,7 @@ class Server:
 
         return [get_route_json(route) for route in routes]
 
-    def add_route(self, new_route):
+    def add_route(self, new_route: object):
         user = self._auth()
 
         try:
@@ -181,7 +182,7 @@ class Server:
 
         return get_route_json(route), StatusCodes.CREATED
 
-    def regenerate_token(self, token):
+    def regenerate_token(self, token: str):
         self._auth()
 
         return self._data_mapper.regenerate_token(token)
@@ -189,10 +190,10 @@ class Server:
     def close(self):
         self._db.close()
 
-    def _resolve_name(self, name):
+    def _resolve_name(self, name: str):
         return getattr(self, name)
 
-    def _set_error_handler(self, error_class, error_message, error_code):
+    def _set_error_handler(self, error_class: Type[Exception], error_message: str, error_code: int):
         def handler(error):
             return flask.make_response(flask.jsonify({'error': error_message}), error_code)
         self.app.add_error_handler(error_class, handler)
@@ -203,7 +204,7 @@ class Server:
         self._set_error_handler(InvalidURLError, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
         self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
 
-    def __init__(self, debug, db, auth):
+    def __init__(self, debug: bool, db: Database, auth: Callable[[], str]):
         self._db = db
         self._auth = auth
         self._db.connect()
