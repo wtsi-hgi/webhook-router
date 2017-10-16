@@ -23,7 +23,7 @@ class RoutingException extends Error{
     }
 }
 
-function routeRequest(request: http.IncomingMessage, response: http.ServerResponse, destination: string){
+export function routeRequest(request: http.IncomingMessage, response: http.ServerResponse, destination: string){
     return new Promise((resolve, reject) => {
         let parsedUrl = url.parse(destination);
         
