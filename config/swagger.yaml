@@ -4,7 +4,6 @@ info:
   title: Webhook router config
   license:
     name: MIT
-host: 127.0.0.1:8081
 paths:
   /routes/{token}:
     parameters:
