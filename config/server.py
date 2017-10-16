@@ -81,22 +81,57 @@ def google_auth(google_oauth_clientID):
 
     return token_info["email"]
 
-class Server:
-    def _get_route_from_token(self, token: str) -> get_route_model(None):
+class RouterDataMapper:
+    def __init__(self, Route: get_route_model):
+        self.Route = Route
+
+    def _get_route_from_token(self, token: str) -> Route:
         routes = self.Route.select().where(self.Route.token == token)
         if len(routes) != 1:
             raise InvalidRouteIDError()
         else:
             return routes[0]
-
+    
     def _generate_new_token(self):
         return str(uuid.uuid4())
 
-    # Swagger called functions
+    def update(self, token, new_info):
+        self._get_route_from_token(token).update(**new_info).execute()
 
+    def delete(self, token):
+        self._get_route_from_token(token).delete().execute()
+
+    def get(self, token):
+        return self._get_route_from_token(token)
+
+    def get_all(self, user):
+        return self.Route.select().where(self.Route.owner == user)
+
+    def add(self, owner, destination, name):
+        route = self.Route(
+            owner=owner,
+            destination=destination,
+            name=name,
+            token=self._generate_new_token())
+
+        route.save()
+
+        return route
+
+    def regenerate_token(self, token):
+        route = self._get_route_from_token(token)
+        new_token = self._generate_new_token()
+        route.update(token=new_token).execute()
+
+        return {
+            **get_route_json(route),
+            "token": new_token
+        }
+
+class Server:
     def patch_route(self, token, new_info):
         self.auth()
-        self._get_route_from_token(token).update(**new_info).execute()
+        self.data_mapper.update(token, new_info)
 
         return None, 204
 
@@ -104,24 +139,23 @@ class Server:
         self.auth()
 
         try:
-            self._get_route_from_token(token).delete().execute()
+            self.data_mapper.delete(token)
         except InvalidRouteIDError:
             pass  # DELETE requests are supposed to be idempotent
 
         return None, 204
 
     def get_route(self, token):
-        return get_route_json(self._get_route_from_token(token))
+        return get_route_json(self.data_mapper.get(token))
 
     def get_all_routes(self):
         user_email = self.auth()
-
-        routes = self.Route.select().where(self.Route.owner == user_email)
+        routes = self.data_mapper.get_all(user_email)
 
         return [get_route_json(route) for route in routes]
 
     def add_route(self, new_route):
-        self.auth()
+        user = self.auth()
 
         try:
             url_ob = urlparse(new_route["destination"])
@@ -132,27 +166,17 @@ class Server:
         else:
             destination = new_route["destination"]
 
-        route = self.Route(
-            owner=self.auth(),
+        route = self.data_mapper.add(
+            owner=user,
             destination=destination,
-            name=new_route["name"],
-            token=self._generate_new_token())
-
-        route.save()
+            name=new_route["name"])
 
         return get_route_json(route), 201
 
     def regenerate_token(self, token):
         self.auth()
 
-        route = self._get_route_from_token(token)
-        new_token = self._generate_new_token()
-        route.update(token=new_token).execute()
-
-        return {
-            **get_route_json(route),
-            "token": new_token
-        }
+        return self.data_mapper.regenerate_token(token)
 
     def close(self):
         self.db.close()
@@ -169,8 +193,9 @@ class Server:
         self.db = db
         self.auth = auth
         self.db.connect()
-        self.Route = get_route_model(self.db)
-        self.db.create_tables([self.Route], True)
+        Route = get_route_model(self.db)
+        self.data_mapper = RouterDataMapper(Route)
+        self.db.create_tables([Route], True)
         self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
 
         self._set_error_handler(InvalidRouteIDError, "Invalid route ID", 404)
