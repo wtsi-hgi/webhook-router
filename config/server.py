@@ -82,7 +82,7 @@ def google_auth(google_oauth_clientID):
     return token_info["email"]
 
 class Server:
-    def _token2route(self, token: str) -> get_route_model(None):
+    def _get_route_from_token(self, token: str) -> get_route_model(None):
         routes = self.Route.select().where(self.Route.token == token)
         if len(routes) != 1:
             raise InvalidRouteIDError()
@@ -96,7 +96,7 @@ class Server:
 
     def patch_route(self, token, new_info):
         self.auth()
-        self._token2route(token).update(**new_info).execute()
+        self._get_route_from_token(token).update(**new_info).execute()
 
         return None, 204
 
@@ -104,14 +104,14 @@ class Server:
         self.auth()
 
         try:
-            self._token2route(token).delete().execute()
+            self._get_route_from_token(token).delete().execute()
         except InvalidRouteIDError:
             pass  # DELETE requests are supposed to be idempotent
 
         return None, 204
 
     def get_route(self, token):
-        return get_route_json(self._token2route(token))
+        return get_route_json(self._get_route_from_token(token))
 
     def get_all_routes(self):
         user_email = self.auth()
@@ -145,7 +145,7 @@ class Server:
     def regenerate_token(self, token):
         self.auth()
 
-        route = self._token2route(token)
+        route = self._get_route_from_token(token)
         new_token = self._generate_new_token()
         route.update(token=new_token).execute()
 
