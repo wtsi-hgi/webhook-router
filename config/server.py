@@ -11,10 +11,10 @@ from peewee import CharField, Model, SqliteDatabase, Database
 from playhouse.shortcuts import model_to_dict
 from typing import Type, Callable
 
-"""
-Gets the Route model for a given database (works around peewee's irregularities)
-"""
 def get_route_model(db: Database):
+    """
+    Gets the Route model for a given database (works around peewee's irregularities)
+    """
     class Route(Model):
         owner = CharField()
         name = CharField()
@@ -26,11 +26,19 @@ def get_route_model(db: Database):
 
     return Route
 
-# Generate a Route type
 def _helper() -> get_route_model:
+    """
+    Helper function to generate a route type
+    """
     return None
 
 RouteType = _helper()
+
+def get_route_json(route: RouteType):
+    """
+    Gets the json respresentation of given route, for returning to the user
+    """
+    return model_to_dict(route)
 
 class StatusCodes:
     CREATED = 201
@@ -39,12 +47,7 @@ class StatusCodes:
     FORBIDDEN = 403
     NOT_FOUND = 404
 
-
-"""
-Gets the json respresentation of given route, for returning to the user
-"""
-def get_route_json(route: RouteType):
-    return model_to_dict(route)
+# User generated errors
 
 class InvalidCredentialsError(Exception):
     pass
@@ -61,16 +64,17 @@ class InvalidRouteIDError(Exception):
 class InvalidURLError(Exception):
     pass
 
-"""
-Test auth function
-"""
+
 def test_auth():
+    """
+    Test auth function
+    """
     return "test_user@sanger.ac.uk"
 
-"""
-Authenticate using google authentication
-"""
 def google_auth(google_oauth_clientID: str):
+    """
+    Authenticate using google authentication
+    """
     token = flask.request.headers.get("Google-Auth-Token")
 
     if token is None:
@@ -90,7 +94,10 @@ def google_auth(google_oauth_clientID: str):
     return token_info["email"]
 
 class RouterDataMapper:
-    def __init__(self, Route: Type[Route]):
+    """
+    Data mapper for the Route type
+    """
+    def __init__(self, Route: Type[RouteType]):
         self._Route = Route
 
     def _get_route_from_token(self, token: str) -> RouteType:
@@ -138,6 +145,45 @@ class RouterDataMapper:
         }
 
 class Server:
+    """
+    Main class for serving requests
+    """
+    def __init__(self, debug: bool, db: Database, auth: Callable[[], str]):
+        self._db = db
+        self._auth = auth
+        self._db.connect()
+        Route = get_route_model(self._db)
+        self._data_mapper = RouterDataMapper(Route)
+        self._db.create_tables([Route], True)
+        self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
+
+        self._set_error_handlers()
+
+        self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self._resolve_name), validate_responses=True)
+    
+    def _resolve_name(self, name: str):
+        """
+        From a swagger operationId, returns the correct class
+        """
+        return getattr(self, name)
+
+    def _set_error_handler(self, error_class: Type[Exception], error_message: str, error_code: int):
+        """
+        For a given Error class, sets response that would be returned
+        """
+        def handler(error):
+            return flask.make_response(flask.jsonify({'error': error_message}), error_code)
+        self.app.add_error_handler(error_class, handler)
+
+    def _set_error_handlers(self):
+        self._set_error_handler(InvalidRouteIDError, "Invalid route ID", StatusCodes.NOT_FOUND)
+        self._set_error_handler(NotAuthorisedError, "Not Authorised", StatusCodes.FORBIDDEN)
+        self._set_error_handler(InvalidURLError, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
+        self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
+
+    def close(self):
+        self._db.close()
+
     def patch_route(self, token: str, new_info: object):
         self._auth()
         self._data_mapper.update(token, new_info)
@@ -186,36 +232,6 @@ class Server:
         self._auth()
 
         return self._data_mapper.regenerate_token(token)
-
-    def close(self):
-        self._db.close()
-
-    def _resolve_name(self, name: str):
-        return getattr(self, name)
-
-    def _set_error_handler(self, error_class: Type[Exception], error_message: str, error_code: int):
-        def handler(error):
-            return flask.make_response(flask.jsonify({'error': error_message}), error_code)
-        self.app.add_error_handler(error_class, handler)
-
-    def _set_error_handlers(self):
-        self._set_error_handler(InvalidRouteIDError, "Invalid route ID", StatusCodes.NOT_FOUND)
-        self._set_error_handler(NotAuthorisedError, "Not Authorised", StatusCodes.FORBIDDEN)
-        self._set_error_handler(InvalidURLError, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
-        self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
-
-    def __init__(self, debug: bool, db: Database, auth: Callable[[], str]):
-        self._db = db
-        self._auth = auth
-        self._db.connect()
-        Route = get_route_model(self._db)
-        self._data_mapper = RouterDataMapper(Route)
-        self._db.create_tables([Route], True)
-        self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
-
-        self._set_error_handlers()
-
-        self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self._resolve_name), validate_responses=True)
 
 
 def main(debug: bool, port: int, host: str, client_id: str=None):
