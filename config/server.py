@@ -5,6 +5,7 @@ from functools import wraps, partial
 
 import connexion
 import flask
+from flask.ext.api import status
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from peewee import CharField, Model, SqliteDatabase, Database
@@ -31,6 +32,14 @@ def _helper() -> get_route_model:
     return None
 
 Route = _helper()
+
+class StatusCodes:
+    CREATED = 201
+    NO_CONTENT = 205
+    BAD_REQUEST = 400
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+
 
 """
 Gets the json respresentation of given route, for returning to the user
@@ -133,7 +142,7 @@ class Server:
         self.auth()
         self.data_mapper.update(token, new_info)
 
-        return None, 204
+        return None, StatusCodes.NO_CONTENT
 
     def delete_route(self, token):
         self.auth()
@@ -143,7 +152,7 @@ class Server:
         except InvalidRouteIDError:
             pass  # DELETE requests are supposed to be idempotent
 
-        return None, 204
+        return None, StatusCodes.NO_CONTENT
 
     def get_route(self, token):
         return get_route_json(self.data_mapper.get(token))
@@ -171,7 +180,7 @@ class Server:
             destination=destination,
             name=new_route["name"])
 
-        return get_route_json(route), 201
+        return get_route_json(route), StatusCodes.CREATED
 
     def regenerate_token(self, token):
         self.auth()
@@ -198,10 +207,10 @@ class Server:
         self.db.create_tables([Route], True)
         self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
 
-        self._set_error_handler(InvalidRouteIDError, "Invalid route ID", 404)
-        self._set_error_handler(NotAuthorisedError, "Not Authorised", 403)
-        self._set_error_handler(InvalidURLError, "Invalid URL in destination", 400)
-        self._set_error_handler(InvalidCredentialsError, "Invalid credentials", 403)
+        self._set_error_handler(InvalidRouteIDError, "Invalid route ID", StatusCodes.NOT_FOUND)
+        self._set_error_handler(NotAuthorisedError, "Not Authorised", StatusCodes.FORBIDDEN)
+        self._set_error_handler(InvalidURLError, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
+        self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
 
         self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self.resolve_name), validate_responses=True)
 
