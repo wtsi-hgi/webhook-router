@@ -2,6 +2,7 @@ import uuid
 import argparse
 from urllib.parse import urlparse
 from functools import wraps, partial
+from abc import ABC, ABCMeta
 
 import connexion
 import flask
@@ -11,30 +12,23 @@ from peewee import CharField, Model, SqliteDatabase, Database
 from playhouse.shortcuts import model_to_dict
 from typing import Type, Callable
 
+class AbstractBaseRoute(Model):
+    owner = CharField()
+    name = CharField()
+    destination = CharField()
+    token = CharField()
+
 def get_route_model(db: Database):
     """
     Gets the Route model for a given database (works around peewee's irregularities)
     """
-    class Route(Model):
-        owner = CharField()
-        name = CharField()
-        destination = CharField()
-        token = CharField()
-
+    class Route(AbstractBaseRoute):
         class Meta:
             database = db
 
     return Route
 
-def _helper() -> get_route_model:
-    """
-    Helper function to generate a route type
-    """
-    return None
-
-RouteType = _helper()
-
-def get_route_json(route: RouteType):
+def get_route_json(route: AbstractBaseRoute):
     """
     Gets the json respresentation of given route, for returning to the user
     """
@@ -97,10 +91,10 @@ class RouterDataMapper:
     """
     Data mapper for the Route type
     """
-    def __init__(self, Route: Type[RouteType]):
+    def __init__(self, Route: Type[AbstractBaseRoute]):
         self._Route = Route
 
-    def _get_route_from_token(self, token: str) -> RouteType:
+    def _get_route_from_token(self, token: str) -> AbstractBaseRoute:
         routes = self._Route.select().where(self._Route.token == token)
         if len(routes) != 1:
             raise InvalidRouteIDError()
