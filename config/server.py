@@ -82,21 +82,6 @@ def google_auth(google_oauth_clientID):
     return token_info["email"]
 
 class Server:
-    def _auth_request(func):
-        @wraps(func)
-        def new_func(self, *args, **kw_args):
-            current_user = self.auth()  # includes auth
-
-            self._log_function_call(func.__name__, current_user, args)
-
-            return func(self, *args, **kw_args)
-
-        return new_func
-
-    def _log_function_call(self, name, user, parameters):
-        # TODO
-        pass
-
     def _token2route(self, token: str) -> get_route_model(None):
         routes = self.Route.select().where(self.Route.token == token)
         if len(routes) != 1:
@@ -109,14 +94,15 @@ class Server:
 
     # Swagger called functions
 
-    @_auth_request
     def patch_route(self, token, new_info):
+        self.auth()
         self._token2route(token).update(**new_info).execute()
 
         return None, 204
 
-    @_auth_request
     def delete_route(self, token):
+        self.auth()
+
         try:
             self._token2route(token).delete().execute()
         except InvalidRouteIDError:
@@ -127,14 +113,16 @@ class Server:
     def get_route(self, token):
         return get_route_json(self._token2route(token))
 
-    @_auth_request
     def get_all_routes(self):
-        routes = self.Route.select().where(self.Route.owner == self.auth())
+        user_email = self.auth()
+
+        routes = self.Route.select().where(self.Route.owner == user_email)
 
         return [get_route_json(route) for route in routes]
 
-    @_auth_request
     def add_route(self, new_route):
+        self.auth()
+
         try:
             url_ob = urlparse(new_route["destination"])
         except SyntaxError:
@@ -154,8 +142,9 @@ class Server:
 
         return get_route_json(route), 201
 
-    @_auth_request
     def regenerate_token(self, token):
+        self.auth()
+
         route = self._token2route(token)
         new_token = self._generate_new_token()
         route.update(token=new_token).execute()
