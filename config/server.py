@@ -5,12 +5,10 @@ from functools import wraps, partial
 
 import connexion
 import flask
-from flask.ext.api import status
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from peewee import CharField, Model, SqliteDatabase, Database
 from playhouse.shortcuts import model_to_dict
-from typing import TypeVar
 
 """
 Gets the Route model for a given database (works around peewee's irregularities)
@@ -35,7 +33,7 @@ Route = _helper()
 
 class StatusCodes:
     CREATED = 201
-    NO_CONTENT = 205
+    NO_CONTENT = 204
     BAD_REQUEST = 400
     FORBIDDEN = 403
     NOT_FOUND = 404
@@ -92,10 +90,10 @@ def google_auth(google_oauth_clientID):
 
 class RouterDataMapper:
     def __init__(self, Route: get_route_model):
-        self.Route = Route
+        self._Route = Route
 
     def _get_route_from_token(self, token: str) -> Route:
-        routes = self.Route.select().where(self.Route.token == token)
+        routes = self._Route.select().where(self._Route.token == token)
         if len(routes) != 1:
             raise InvalidRouteIDError()
         else:
@@ -114,10 +112,10 @@ class RouterDataMapper:
         return self._get_route_from_token(token)
 
     def get_all(self, user):
-        return self.Route.select().where(self.Route.owner == user)
+        return self._Route.select().where(self._Route.owner == user)
 
     def add(self, owner, destination, name):
-        route = self.Route(
+        route = self._Route(
             owner=owner,
             destination=destination,
             name=name,
@@ -139,32 +137,32 @@ class RouterDataMapper:
 
 class Server:
     def patch_route(self, token, new_info):
-        self.auth()
-        self.data_mapper.update(token, new_info)
+        self._auth()
+        self._data_mapper.update(token, new_info)
 
         return None, StatusCodes.NO_CONTENT
 
     def delete_route(self, token):
-        self.auth()
+        self._auth()
 
         try:
-            self.data_mapper.delete(token)
+            self._data_mapper.delete(token)
         except InvalidRouteIDError:
             pass  # DELETE requests are supposed to be idempotent
 
         return None, StatusCodes.NO_CONTENT
 
     def get_route(self, token):
-        return get_route_json(self.data_mapper.get(token))
+        return get_route_json(self._data_mapper.get(token))
 
     def get_all_routes(self):
-        user_email = self.auth()
-        routes = self.data_mapper.get_all(user_email)
+        user_email = self._auth()
+        routes = self._data_mapper.get_all(user_email)
 
         return [get_route_json(route) for route in routes]
 
     def add_route(self, new_route):
-        user = self.auth()
+        user = self._auth()
 
         try:
             url_ob = urlparse(new_route["destination"])
@@ -175,7 +173,7 @@ class Server:
         else:
             destination = new_route["destination"]
 
-        route = self.data_mapper.add(
+        route = self._data_mapper.add(
             owner=user,
             destination=destination,
             name=new_route["name"])
@@ -183,14 +181,14 @@ class Server:
         return get_route_json(route), StatusCodes.CREATED
 
     def regenerate_token(self, token):
-        self.auth()
+        self._auth()
 
-        return self.data_mapper.regenerate_token(token)
+        return self._data_mapper.regenerate_token(token)
 
     def close(self):
-        self.db.close()
+        self._db.close()
 
-    def resolve_name(self, name):
+    def _resolve_name(self, name):
         return getattr(self, name)
 
     def _set_error_handler(self, error_class, error_message, error_code):
@@ -205,12 +203,12 @@ class Server:
         self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
 
     def __init__(self, debug, db, auth):
-        self.db = db
-        self.auth = auth
-        self.db.connect()
-        Route = get_route_model(self.db)
-        self.data_mapper = RouterDataMapper(Route)
-        self.db.create_tables([Route], True)
+        self._db = db
+        self._auth = auth
+        self._db.connect()
+        Route = get_route_model(self._db)
+        self._data_mapper = RouterDataMapper(Route)
+        self._db.create_tables([Route], True)
         self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
 
         self._set_error_handlers()
