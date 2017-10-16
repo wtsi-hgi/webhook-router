@@ -1,22 +1,26 @@
 {
   "name": "router",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.1.0",
+  "description": "Webhook router",
   "main": "router.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wtsi-hgi/webhook-router"
   },
-  "author": "",
-  "license": "ISC",
+  "scripts": {
+    "test": "jasmine test.js",
+    "postinstall": "npm run-script build",
+    "build": "tsc"
+  },
+  "author": "Thomas Hickman",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.16.1",
-    "http-proxy": "^1.16.2",
-    "httpp-proxy": "^0.10.3",
-    "lodash": "^4.17.4",
     "node-fetch": "^1.7.3"
   },
   "devDependencies": {
+    "@types/jasmine": "^2.6.0",
     "@types/node": "^8.0.33",
-    "@types/node-fetch": "^1.6.7"
+    "@types/node-fetch": "^1.6.7",
+    "typescript": "^2.5.3"
   }
 }
