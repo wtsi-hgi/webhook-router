@@ -1,0 +1,27 @@
+{
+  "name": "router",
+  "version": "0.1.0",
+  "description": "Webhook router",
+  "main": "router.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wtsi-hgi/webhook-router"
+  },
+  "scripts": {
+    "test": "jasmine test.js",
+    "postinstall": "npm run-script build",
+    "build": "tsc"
+  },
+  "author": "Thomas Hickman",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^1.7.3"
+  },
+  "devDependencies": {
+    "@types/jasmine": "^2.6.0",
+    "@types/node": "^8.0.33",
+    "@types/node-fetch": "^1.6.7",
+    "jasmine": "^2.8.0",
+    "typescript": "^2.5.3"
+  }
+}
