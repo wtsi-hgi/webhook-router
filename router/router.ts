@@ -2,89 +2,92 @@ import http = require('http');
 import https = require('https');
 import url = require("url");
 import fetch from "node-fetch";
-import httpProxy = require("http-proxy")
+import httpProxy = require("http-proxy");
+var route = require("router")();
+import argparse = require("argparse");
 
-const configServer = "http://127.0.0.1:8081"
+var writeNotFound = (resp: any) => writeError("Not found", 404, resp);
+var writeInternalError = (resp: any) => writeError("Internal server error", 500, resp);
 
 function writeError(message: string, code: number, response: http.ServerResponse){
     response.writeHead(code, {
         "Content-Type": "application/json; charset=utf-8"
     })
 
-    response.end(JSON.stringify({error: message}))
-}
-
-class RoutingException extends Error{
-    constructor(public message: string, public httpErrorCode: number, public logMessage?: string) {
-        super();
-    }
+    response.end(JSON.stringify({error: message}, undefined, 4)) // Space out the response using 4 spaces
 }
 
 async function getDestinationFromToken(token: string){
-    var configServerResp = await fetch(`${configServer}/routes/${token}`)
+    var configServerResp = await fetch(`${args.configServer}/routes/${token}`)
     try{
         var configServerJSON = await configServerResp.json();
     }
-    catch(e){
-        throw new RoutingException("Invalid response from config server", 500, e);
+    catch(error){
+        throw new Error(`Error in parsing config server response: ${error}`);
     }
 
     if(typeof configServerJSON.error == "string"){
-        throw new RoutingException("Config server error: " + configServerJSON.error, configServerResp.status);
+        throw new Error(`Config server error: ${configServerJSON.error}`);
     }
 
     return <string>configServerJSON.destination;
 }
 
-let proxy = httpProxy.createProxyServer({
-    changeOrigin: true
+let proxy = httpProxy.createProxyServer(<any>{
+    changeOrigin: true,
+    preserveHeaderKeyCase: true,
+    ignorePath: true
 })
 
-function handleRequest(request: http.IncomingMessage, response: http.ServerResponse, onError: (error: any) => any){
-    // see if the request is correct and extract the token
-    // should be POST request of the form /{token}
-    let requestUrl = url.parse(<string>request.url);
-    if(request.method !== "POST"){
-        writeError("Method Not Allowed", 405, response);
-    }
+function routeRequest(request: http.IncomingMessage, response: http.ServerResponse, destination: string){
+    return new Promise((resolve, reject) => {
+        (<any>request).resolvePromise = resolve;
 
-    let path = requestUrl.path!.split("/").filter(x => x != "");
-    if(path.length != 1){
-        writeError("Not Found", 404, response);
-        return;
-    }
-
-    getDestinationFromToken(path[0]).then((destination) => {
         proxy.web(request, response, {
             target: destination
-        }, (error) => {
-            onError(error)
+        }, (error: Error & {code: string}) => {
+            reject(error);
         })
-    }).catch((error) => {
-        onError(error)
     })
 }
 
 proxy.on("end", (req, res, proxyRes) => {
-    // TODO: log successful route
+    (<any>req).resolvePromise();
 })
 
-http.createServer(async (request, response) => {
-    handleRequest(request, response, (error) => {
-        if (error instanceof RoutingException){
-            if (error.logMessage){
-                console.log(error.logMessage);
-            }
-            writeError(error.message, error.httpErrorCode, response);
+route.post("/:token", (request: http.IncomingMessage & {params: any}, response: http.ServerResponse) => {
+    let token = request.params.token;
+
+    (async () => {
+        let destination = await getDestinationFromToken(token);
+        await routeRequest(request, response, destination);
+
+        console.error(`Correctly routed token "${token}" to location ${destination}`)
+    })().catch(error => {
+        console.error(`Failed routing of ${token}. ${error}`);
+
+        writeInternalError(response);
+    })
+})
+
+let parser = new argparse.ArgumentParser({
+    description: "Webhook router"
+})
+parser.addArgument(["--port"], {help: "Port to serve the request", required: true})
+parser.addArgument(["--host"], {help: "Host to serve the request from", defaultValue: "127.0.0.1"})
+parser.addArgument(["--configServer"], {help: "Ip Address of the config server", required: true})
+let args = parser.parseArgs();
+
+
+http.createServer((request, response) => {
+    route(request, response, (error: any) => {
+        console.error(error);
+
+        if(!error){
+            writeNotFound(response)
         }
         else{
-            writeError("Internal Server Error", 500, response);
-            console.log(error);
+            writeInternalError(response);
         }
-    });
-}).listen(8080);
-
-process.on('uncaughtException', function (err) {
-    console.error("Uncaught exception:");
-    console.error(err.stack);
-});
+    })
+}).listen(args.port, args.host);
