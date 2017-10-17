@@ -1,196 +1,251 @@
 import uuid
 import argparse
 from urllib.parse import urlparse
-from functools import wraps
+from functools import wraps, partial
+from abc import ABC, ABCMeta
 
 import connexion
 import flask
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from peewee import CharField, Model, SqliteDatabase
+from peewee import CharField, Model, SqliteDatabase, Database
+from playhouse.shortcuts import model_to_dict
+from typing import Type, Callable
 
+class AbstractBaseRoute(Model):
+    owner = CharField()
+    name = CharField()
+    destination = CharField()
+    token = CharField()
 
-def get_route_model(db):
-    class Route(Model):
-        owner = CharField()
-        name = CharField()
-        destination = CharField()
-        token = CharField()
-
-        def get_json(self):
-            return {
-                "owner": self.owner,
-                "destination": self.destination,
-                "token": self.token,
-                "name": self.name
-            }
-
+def get_route_model(db: Database):
+    """
+    Gets the Route model for a given database (works around peewee's irregularities)
+    """
+    class Route(AbstractBaseRoute):
         class Meta:
             database = db
 
     return Route
 
+def get_route_json(route: AbstractBaseRoute):
+    """
+    Gets the json respresentation of given route, for returning to the user
+    """
+    return model_to_dict(route)
 
-class InvalidCredentials(Exception):
+class StatusCodes:
+    CREATED = 201
+    NO_CONTENT = 204
+    BAD_REQUEST = 400
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+
+# User generated errors
+
+class InvalidCredentialsError(Exception):
     pass
 
 
-class NotAuthorised(Exception):
+class NotAuthorisedError(Exception):
     pass
 
 
-class InvalidRouteID(Exception):
+class InvalidRouteIDError(Exception):
     pass
 
 
-class InvalidURL(Exception):
+class InvalidURLError(Exception):
     pass
 
-google_oauth_clientID = "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.self.apps.googleusercontent.com"
 
-class Auth:
-    def get_user(self):
-        token = flask.request.headers.get("Google-Auth-Token")
+def test_auth():
+    """
+    Test auth function
+    """
+    return "test_user@sanger.ac.uk"
 
-        if token is None:
-            raise InvalidCredentials()
+def google_auth(google_oauth_clientID: str):
+    """
+    Authenticate using google authentication
+    """
+    token = flask.request.headers.get("Google-Auth-Token")
 
-        try:
-            token_info = id_token.verify_oauth2_token(token, requests.Request(), google_oauth_clientID)
-        except ValueError as ve:
-            raise InvalidCredentials() from ve
+    if token is None:
+        raise InvalidCredentialsError()
 
-        if token_info["hd"] != "sanger.ac.uk":
-            raise InvalidCredentials()
+    try:
+        token_info = id_token.verify_oauth2_token(token, requests.Request(), google_oauth_clientID)
+    except ValueError as e:
+        raise InvalidCredentialsError() from e
 
-        if token_info['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
-            raise InvalidCredentials()
+    if token_info["hd"] != "sanger.ac.uk":
+        raise InvalidCredentialsError()
 
-        return token_info["email"]
+    if token_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
+        raise InvalidCredentialsError()
 
-class Server:
-    def _auth_request(func):
-        @wraps(func)
-        def new_func(self, *args, **kw_args):
-            current_user = self.auth.get_user()  # includes auth
+    return token_info["email"]
 
-            self._log_function_call(func.__name__, current_user, args)
+class RouterDataMapper:
+    """
+    Data mapper for the Route type
+    """
+    def __init__(self, Route: Type[AbstractBaseRoute]):
+        self._Route = Route
 
-            return func(self, *args, **kw_args)
-
-        return new_func
-
-    def _log_function_call(self, name, user, parameters):
-        # TODO
-        pass
-
-    def _token2route(self, token: str) -> get_route_model(None):
-        routes = self.Route.select().where(self.Route.token == token)
+    def _get_route_from_token(self, token: str) -> AbstractBaseRoute:
+        routes = self._Route.select().where(self._Route.token == token)
         if len(routes) != 1:
-            raise InvalidRouteID()
+            raise InvalidRouteIDError()
         else:
             return routes[0]
-
-    def _generate_new_token(self):
+    
+    @staticmethod
+    def _generate_new_token():
         return str(uuid.uuid4())
 
-    # Swagger called functions
+    def update(self, token: str, new_info: object):
+        self._get_route_from_token(token).update(**new_info).execute()
 
-    @_auth_request
-    def patch_route(self, token, new_info):
-        self._token2route(token).update(**new_info).execute()
+    def delete(self, token: str):
+        self._get_route_from_token(token).delete().execute()
 
-        return None, 204
+    def get(self, token: str):
+        return self._get_route_from_token(token)
 
-    @_auth_request
-    def delete_route(self, token):
-        try:
-            self._token2route(token).delete().execute()
-        except InvalidRouteID:
-            pass  # DELETE requests are supposed to be idempotent
+    def get_all(self, user: str):
+        return self._Route.select().where(self._Route.owner == user)
 
-        return None, 204
-
-    def get_route(self, token):
-        return self._token2route(token).get_json()
-
-    @_auth_request
-    def get_all_routes(self):
-        routes = self.Route.select().where(self.Route.owner == self.auth.get_user())
-
-        return [route.get_json() for route in routes]
-
-    @_auth_request
-    def add_route(self, new_route):
-        try:
-            url_ob = urlparse(new_route["destination"])
-            if url_ob.scheme == '':
-                destination = "http://" + new_route["destination"]
-            else:
-                destination = new_route["destination"]
-        except SyntaxError:
-            raise InvalidURL()
-
-        route = self.Route(
-            owner=self.auth.get_user(),
+    def add(self, owner: str, destination: str, name: str):
+        route = self._Route(
+            owner=owner,
             destination=destination,
-            name=new_route["name"],
-            token=self._generate_new_token())
+            name=name,
+            token=RouterDataMapper._generate_new_token())
 
         route.save()
 
-        return route.get_json(), 201
+        return route
 
-    @_auth_request
-    def regenerate_token(self, token):
-        route = self._token2route(token)
-        new_token = self._generate_new_token()
+    def regenerate_token(self, token: str):
+        route = self._get_route_from_token(token)
+        new_token = RouterDataMapper._generate_new_token()
         route.update(token=new_token).execute()
 
         return {
-            **route.get_json(),
+            **get_route_json(route),
             "token": new_token
         }
 
-    def close(self):
-        self.db.close()
+class Server:
+    """
+    Main class for serving requests
+    """
+    def __init__(self, debug: bool, db: Database, auth: Callable[[], str]):
+        self._db = db
+        self._auth = auth
+        self._db.connect()
+        Route = get_route_model(self._db)
+        self._data_mapper = RouterDataMapper(Route)
+        self._db.create_tables([Route], True)
+        self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
 
-    def resolve_name(self, name):
+        self._set_error_handlers()
+
+        self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self._resolve_name), validate_responses=True)
+    
+    def _resolve_name(self, name: str):
+        """
+        From a swagger operationId, returns the correct class
+        """
         return getattr(self, name)
 
-    def _set_error_handler(self, error_class, error_message, error_code):
+    def _set_error_handler(self, error_class: Type[Exception], error_message: str, error_code: int):
+        """
+        For a given Error class, sets response that would be returned
+        """
         def handler(error):
             return flask.make_response(flask.jsonify({'error': error_message}), error_code)
         self.app.add_error_handler(error_class, handler)
 
-    def __init__(self, debug, db, auth):
-        self.db = db
-        self.auth = auth
-        self.db.connect()
-        self.Route = get_route_model(self.db)
-        self.db.create_tables([self.Route], True)
-        self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
+    def _set_error_handlers(self):
+        self._set_error_handler(InvalidRouteIDError, "Invalid route ID", StatusCodes.NOT_FOUND)
+        self._set_error_handler(NotAuthorisedError, "Not Authorised", StatusCodes.FORBIDDEN)
+        self._set_error_handler(InvalidURLError, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
+        self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
 
-        self._set_error_handler(InvalidRouteID, "Invalid route ID", 404)
-        self._set_error_handler(NotAuthorised, "Not Authorised", 403)
-        self._set_error_handler(InvalidURL, "Invalid URL in destination", 400)
-        self._set_error_handler(InvalidCredentials, "Invalid credentials", 403)
+    def close(self):
+        self._db.close()
 
-        self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self.resolve_name), validate_responses=debug)
+    def patch_route(self, token: str, new_info: object):
+        self._auth()
+        self._data_mapper.update(token, new_info)
 
+        return None, StatusCodes.NO_CONTENT
+
+    def delete_route(self, token: str):
+        self._auth()
+
+        try:
+            self._data_mapper.delete(token)
+        except InvalidRouteIDError:
+            pass  # DELETE requests are supposed to be idempotent
+
+        return None, StatusCodes.NO_CONTENT
+
+    def get_route(self, token: str):
+        return get_route_json(self._data_mapper.get(token))
+
+    def get_all_routes(self):
+        user_email = self._auth()
+        routes = self._data_mapper.get_all(user_email)
+
+        return [get_route_json(route) for route in routes]
+
+    def add_route(self, new_route: object):
+        user = self._auth()
+
+        try:
+            url_ob = urlparse(new_route["destination"])
+        except SyntaxError:
+            raise InvalidURLError()
+        if url_ob.scheme == '':
+            destination = "http://" + new_route["destination"]
+        else:
+            destination = new_route["destination"]
+
+        route = self._data_mapper.add(
+            owner=user,
+            destination=destination,
+            name=new_route["name"])
+
+        return get_route_json(route), StatusCodes.CREATED
+
+    def regenerate_token(self, token: str):
+        self._auth()
+
+        return self._data_mapper.regenerate_token(token)
+
+
+def main(debug: bool, port: int, host: str, client_id: str=None):
+    if not debug and not client_id:
+        raise TypeError("server: main(...) - debug=False requires client_id to have a value")
+    server = Server(
+        debug=debug,
+        db=SqliteDatabase('db.db'),
+        auth=test_auth if debug else partial(google_auth, client_id)
+    )
+
+    server.app.run(port=port, host=host)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generates CWL files from the GATK documentation')
     parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
+    parser.add_argument("--client_id", help="Google client ID for oauth authentication", default="127.0.0.1")
 
     options = parser.parse_args()
 
-    server = Server(
-        debug=options.debug,
-        db=SqliteDatabase(':memory:') if options.debug else SqliteDatabase('db.db'),
-        auth=Auth()
-    )
-
-    server.app.run(port=options.port, host=options.host)
+    main(options.debug, options.port, options.host)
