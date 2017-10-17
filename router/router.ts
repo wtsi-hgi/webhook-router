@@ -11,11 +11,7 @@ function writeError(message: string, code: number, response: http.ServerResponse
         "Content-Type": "application/json; charset=utf-8"
     })
 
-    response.end(
-`{
-    "error": "${message}"
-}
-`)
+    response.end(JSON.stringify({error: message}))
 }
 
 class RoutingException extends Error{
