@@ -15,9 +15,11 @@
   "author": "Thomas Hickman",
   "license": "MIT",
   "dependencies": {
+    "http-proxy": "^1.16.2",
     "node-fetch": "^1.7.3"
   },
   "devDependencies": {
+    "@types/http-proxy": "^1.12.1",
     "@types/jasmine": "^2.6.0",
     "@types/node": "^8.0.33",
     "@types/node-fetch": "^1.6.7",
