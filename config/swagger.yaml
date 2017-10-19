@@ -5,12 +5,12 @@ info:
   license:
     name: MIT
 paths:
-  /routes/{token}:
+  /routes/{uuid}:
     parameters:
-      - name: token
+      - name: uuid
         in: path
         required: true
-        description: The token of the route
+        description: The uuid of the route
         type: string
     delete:
       summary: Delete the given webhook
@@ -54,12 +54,31 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/Error"
-  /routes/{token}/regenerate:
+  /routes/token/{token}:
     parameters:
       - name: token
         in: path
         required: true
         description: The token of the route
+        type: string
+    get:
+      summary: Gets a route by it's token. Intended to be used by the router when it receives a request
+      operationId: get_by_token
+      responses:
+        '200':
+          description: Information about the webhook
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /routes/{uuid}/regenerate:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        description: The uuid of the route
         type: string
     post:
       summary: Regenerates the token for the given route
