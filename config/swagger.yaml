@@ -15,6 +15,8 @@ paths:
     delete:
       summary: Delete the given webhook
       operationId: delete_route
+      security: 
+        - googleToken: []
       responses:
         '204':
           description: Webhook routed correctly
@@ -37,6 +39,8 @@ paths:
     patch:
       summary: Edit the configuration of the given webhook
       operationId: patch_route
+      security: 
+        - googleToken: []
       parameters:
         - name: new_info
           in: body
@@ -60,6 +64,8 @@ paths:
     post:
       summary: Regenerates the token for the given route
       operationId: regenerate_token
+      security: 
+        - googleToken: []
       responses:
         '200':
           description: Successful regeneration, returns json data of the new route
@@ -86,6 +92,8 @@ paths:
     post:
       summary: Gets all routes that are configured
       operationId: add_route
+      security: 
+        - googleToken: []
       parameters:
         - name: new_route
           in: body
@@ -137,3 +145,8 @@ definitions:
     properties:
       error:
         type: string
+securityDefinitions:
+  googleToken:
+    type: apiKey
+    name: Google-Auth-Token
+    in: header
