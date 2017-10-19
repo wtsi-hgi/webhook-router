@@ -1,0 +1,26 @@
+{
+  "name": "router-front-end",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "gen-api": "swagger-codegen generate -i ../config/swagger.yaml -l typescript-fetch -o . --additional-properties supportsES6=True",
+    "build": "npm run-script gen_api && tsc"
+  },
+  "author": "Thomas Hickman",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/gapi.auth2": "0.0.45",
+    "ts-loader": "^3.0.2",
+    "webpack": "^3.8.1"
+  },
+  "dependencies": {
+    "@types/gapi": "0.0.35",
+    "@types/node": "^8.0.44",
+    "browser-request": "^0.3.3",
+    "gapi": "0.0.3",
+    "swagger-client": "^3.2.2",
+    "typescript": "^2.5.3",
+    "vue": "^2.5.2"
+  }
+}
