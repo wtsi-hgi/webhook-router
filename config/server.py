@@ -11,6 +11,7 @@ from google.auth.transport import requests
 from peewee import CharField, Model, SqliteDatabase, Database
 from playhouse.shortcuts import model_to_dict
 from typing import Type, Callable
+from flask_cors import CORS
 
 class AbstractBaseRoute(Model):
     owner = CharField()
@@ -150,6 +151,7 @@ class Server:
         self._data_mapper = RouterDataMapper(Route)
         self._db.create_tables([Route], True)
         self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
+        CORS(self.app.app)
 
         self._set_error_handlers()
 
