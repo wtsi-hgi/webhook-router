@@ -18,7 +18,7 @@ function writeError(message: string, code: number, response: http.ServerResponse
 }
 
 async function getDestinationFromToken(token: string){
-    var configServerResp = await fetch(`${args.configServer}/routes/${token}`)
+    var configServerResp = await fetch(`${args.configServer}/routes/token/${token}`)
     try{
         var configServerJSON = await configServerResp.json();
     }

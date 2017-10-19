@@ -1,7 +1,8 @@
 import uuid
+import secrets
 import argparse
 from urllib.parse import urlparse
-from functools import wraps, partial
+from functools import partial
 from abc import ABC, ABCMeta
 
 import connexion
@@ -13,6 +14,7 @@ from playhouse.shortcuts import model_to_dict
 from typing import Type, Callable
 
 class AbstractBaseRoute(Model):
+    uuid = CharField()
     owner = CharField()
     name = CharField()
     destination = CharField()
@@ -51,11 +53,14 @@ class NotAuthorisedError(Exception):
     pass
 
 
-class InvalidRouteIDError(Exception):
+class InvalidRouteUUIDError(Exception):
     pass
 
 
 class InvalidURLError(Exception):
+    pass
+
+class InvalidRouteTokenError(Exception):
     pass
 
 
@@ -94,25 +99,34 @@ class RouterDataMapper:
     def __init__(self, Route: Type[AbstractBaseRoute]):
         self._Route = Route
 
-    def _get_route_from_token(self, token: str) -> AbstractBaseRoute:
-        routes = self._Route.select().where(self._Route.token == token)
+    def _get_route_from_uuid(self, uuid: str) -> AbstractBaseRoute:
+        routes = self._Route.select().where(self._Route.uuid == uuid)
         if len(routes) != 1:
-            raise InvalidRouteIDError()
+            raise InvalidRouteUUIDError()
         else:
             return routes[0]
     
     @staticmethod
     def _generate_new_token():
-        return str(uuid.uuid4())
+        return str(secrets.token_urlsafe())
 
-    def update(self, token: str, new_info: object):
-        self._get_route_from_token(token).update(**new_info).execute()
+    def update(self, uuid: str, new_info: object):
+        self._get_route_from_uuid(uuid).update(**new_info).execute()
 
-    def delete(self, token: str):
-        self._get_route_from_token(token).delete().execute()
+    def delete(self, uuid: str):
+        self._get_route_from_uuid(uuid).delete().execute()
 
-    def get(self, token: str):
-        return self._get_route_from_token(token)
+    def get(self, uuid: str):
+        return self._get_route_from_uuid(uuid)
+
+    def get_by_token(self, token: str):
+        # TODO look at timing attacks here
+        routes = self._Route.select().where(self._Route.token == token)
+
+        if len(routes) != 1:
+            raise InvalidRouteTokenError()
+        else:
+            return routes[0]
 
     def get_all(self, user: str):
         return self._Route.select().where(self._Route.owner == user)
@@ -122,14 +136,15 @@ class RouterDataMapper:
             owner=owner,
             destination=destination,
             name=name,
+            uuid=str(uuid.uuid4()),
             token=RouterDataMapper._generate_new_token())
 
         route.save()
 
         return route
 
-    def regenerate_token(self, token: str):
-        route = self._get_route_from_token(token)
+    def regenerate_token(self, uuid: str):
+        route = self._get_route_from_uuid(uuid)
         new_token = RouterDataMapper._generate_new_token()
         route.update(token=new_token).execute()
 
@@ -170,7 +185,8 @@ class Server:
         self.app.add_error_handler(error_class, handler)
 
     def _set_error_handlers(self):
-        self._set_error_handler(InvalidRouteIDError, "Invalid route ID", StatusCodes.NOT_FOUND)
+        self._set_error_handler(InvalidRouteUUIDError, "Invalid route UUID", StatusCodes.NOT_FOUND)
+        self._set_error_handler(InvalidRouteTokenError, "Invalid route token", StatusCodes.NOT_FOUND)
         self._set_error_handler(NotAuthorisedError, "Not Authorised", StatusCodes.FORBIDDEN)
         self._set_error_handler(InvalidURLError, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
         self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
@@ -178,24 +194,27 @@ class Server:
     def close(self):
         self._db.close()
 
-    def patch_route(self, token: str, new_info: object):
+    def patch_route(self, uuid: str, new_info: object):
         self._auth()
-        self._data_mapper.update(token, new_info)
+        self._data_mapper.update(uuid, new_info)
 
         return None, StatusCodes.NO_CONTENT
 
-    def delete_route(self, token: str):
+    def get_by_token(self, token: str):
+        return get_route_json(self._data_mapper.get_by_token(token))
+
+    def delete_route(self, uuid: str):
         self._auth()
 
         try:
-            self._data_mapper.delete(token)
-        except InvalidRouteIDError:
+            self._data_mapper.delete(uuid)
+        except InvalidRouteUUIDError:
             pass  # DELETE requests are supposed to be idempotent
 
         return None, StatusCodes.NO_CONTENT
 
-    def get_route(self, token: str):
-        return get_route_json(self._data_mapper.get(token))
+    def get_route(self, uuid: str):
+        return get_route_json(self._data_mapper.get(uuid))
 
     def get_all_routes(self):
         user_email = self._auth()
@@ -222,10 +241,10 @@ class Server:
 
         return get_route_json(route), StatusCodes.CREATED
 
-    def regenerate_token(self, token: str):
+    def regenerate_token(self, uuid: str):
         self._auth()
 
-        return self._data_mapper.regenerate_token(token)
+        return self._data_mapper.regenerate_token(uuid)
 
 
 def main(debug: bool, port: int, host: str, client_id: str=None):
