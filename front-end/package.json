@@ -11,16 +11,16 @@
   "license": "MIT",
   "devDependencies": {
     "@types/gapi.auth2": "0.0.45",
-    "ts-loader": "^3.0.2",
-    "webpack": "^3.8.1"
-  },
-  "dependencies": {
     "@types/gapi": "0.0.35",
     "@types/node": "^8.0.44",
-    "browser-request": "^0.3.3",
-    "gapi": "0.0.3",
-    "swagger-client": "^3.2.2",
+    "@types/isomorphic-fetch": "0.0.34",
+    "ts-loader": "^3.0.2",
     "typescript": "^2.5.3",
+    "webpack": "^3.8.1",
+    "swagger-codegen": "^0.1.1"
+  },
+  "dependencies": {
+    "isomorphic-fetch": "^2.2.1",
     "vue": "^2.5.2"
   }
 }

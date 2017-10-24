@@ -1,0 +1,98 @@
+<html lang="en">
+    
+<head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.css"
+    integrity="sha256-CNwnGWPO03a1kOlAsGaH5g8P3dFaqFqqGFV/1nkX5OU=" crossorigin="anonymous" />
+<script src="https://apis.google.com/js/platform.js?onload=googleStart" async defer></script>
+<link rel="stylesheet" href="index.css" />
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" crossorigin="anonymous">
+</head>
+<body>
+<nav class="navbar navbar-expand-md navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">Webhook Router</a>
+</nav>
+<div id="base" class="container">
+    <br />
+    <h2>
+        Route: "{{initName}}"
+        <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm"
+            id="deleteButton" style="margin-left: 10px; ">Delete Route</button>
+    </h2>
+    <br/>
+    <form @submit.prevent="postForm">
+        <p>
+            <label for="route-name">Name:</label>
+            <input type="text" required class="form-control" placeholder="Route Name" 
+                id="route-name" required v-model="name">
+        </p>
+        <p>
+            <label for="route-destination">Destination:</label>
+            <input type="url" class="form-control" placeholder="Route Destination"
+                id="route-destination" required v-model="destination">
+        </p>
+        <button type="submit" class="btn btn-success" :disabled="!modified">Save Changes</button>
+        <hr>
+        <label for="route-destination">Token:</label>
+        <code>{{token}}</code>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
+            Regenerate Token</button>
+        <br />
+        <label for="route-destination">UUID:</label>
+        <code>{{uuid}}</code>
+        <hr>
+        Route location: 
+        <code>
+            {{routingServer}}/{{token}}
+        </code>
+    </form>
+
+    <div class="modal fade" id="deleteConfirm" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="deleteConfirmLabel">Confirm route deletion</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete "{{initName}}"?
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-danger" @click="deleteRoute">Delete Route</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="regenerateConfirm" tabindex="-1" role="dialog" aria-labelledby="regenerateConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="regenerateConfirmLabel">Confirm token regeneration</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to regenerate the token of "{{initName}}"?
+                <br />
+                <small>Regenerating tokens will break all links to this route.</small>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-danger" data-dismiss="modal" @click="regenerateToken">Regenerate Token</button>
+            </div>
+          </div>
+        </div>
+    </div>
+</div>
+<script src="../modify-route.entry.js"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" crossorigin="anonymous"></script>
+<script src="http://1000hz.github.io/bootstrap-validator/dist/validator.min.js"></script>
+</body>
+
+</html>
