@@ -9,7 +9,7 @@ import connexion
 import flask
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from peewee import CharField, Model, SqliteDatabase, Database
+from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist
 from playhouse.shortcuts import model_to_dict
 from typing import Type, Callable
 from flask_cors import CORS
@@ -101,21 +101,25 @@ class RouterDataMapper:
         self._Route = Route
 
     def _get_route_from_uuid(self, uuid: str) -> AbstractBaseRoute:
-        routes = self._Route.select().where(self._Route.uuid == uuid)
-        if len(routes) != 1:
-            raise InvalidRouteUUIDError()
-        else:
-            return routes[0]
+        try:
+            return self._Route.get(self._Route.uuid == uuid)
+        except DoesNotExist as e:
+            raise InvalidRouteUUIDError() from e
     
     @staticmethod
     def _generate_new_token():
         return str(secrets.token_urlsafe())
 
     def update(self, uuid: str, new_info: object):
-        self._get_route_from_uuid(uuid).update(**new_info).execute()
+        route = self._get_route_from_uuid(uuid)
+        for key in new_info:
+            setattr(route, key, new_info[key])
+
+        route.save()
 
     def delete(self, uuid: str):
-        self._get_route_from_uuid(uuid).delete().execute()
+        route = self._get_route_from_uuid(uuid)
+        route.delete_instance()
 
     def get(self, uuid: str):
         return self._get_route_from_uuid(uuid)
@@ -147,7 +151,8 @@ class RouterDataMapper:
     def regenerate_token(self, uuid: str):
         route = self._get_route_from_uuid(uuid)
         new_token = RouterDataMapper._generate_new_token()
-        route.update(token=new_token).execute()
+        route.token = new_token
+        route.save()
 
         return {
             **get_route_json(route),
