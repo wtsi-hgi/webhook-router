@@ -1,16 +1,4 @@
-<html lang="en">
-    
-<head>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.css"
-    integrity="sha256-CNwnGWPO03a1kOlAsGaH5g8P3dFaqFqqGFV/1nkX5OU=" crossorigin="anonymous" />
-<script src="https://apis.google.com/js/platform.js?onload=googleStart" async defer></script>
-<link rel="stylesheet" href="index.css" />
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" crossorigin="anonymous">
-</head>
-<body>
-<nav class="navbar navbar-expand-md navbar-dark bg-dark">
-    <a class="navbar-brand" href="#">Webhook Router</a>
-</nav>
+<template>
 <div id="base" class="container">
     <br />
     <h2>
@@ -88,11 +76,95 @@
         </div>
     </div>
 </div>
-<script src="../modify-route.entry.js"></script>
-<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" crossorigin="anonymous"></script>
-<script src="http://1000hz.github.io/bootstrap-validator/dist/validator.min.js"></script>
-</body>
+</template>
+<script lang="ts">
+import Vue from "vue";
+import * as swaggerAPI from "../api";
+import Component from 'vue-class-component'
+import {configServer, routingServer} from "../config"
 
-</html>
+@Component({
+    props: {
+        uuid: String
+    }
+})
+export default class extends Vue {
+    uuid: string
+    errorText = ""
+    name = ""
+    initName = ""
+    destination = ""
+    token = ""
+    init = false
+    routingServer = routingServer
+
+    initData: {
+        name: string
+        destination: string
+    }
+
+    get modified () {
+        return this.init && !(this.initData.name == this.name 
+                  && this.initData.destination == this.destination)
+    }
+
+    api = new swaggerAPI.DefaultApi(fetch, configServer);
+
+    postForm(){
+        this.api.patchRoute({
+            uuid: this.uuid,
+            newInfo: {
+                name: this.name,
+                destination: this.destination
+            }
+        }).then(result => {
+            console.log(result)
+        }).catch(e => {
+            this.errorText = "Error: " + e.toString()
+        })
+    }
+
+    cancelForm() {
+        this.$router.push("/");
+    }
+
+    deleteRoute() {
+        this.api.deleteRoute({
+            uuid: this.uuid
+        })
+
+        this.$router.push("/");
+    }
+
+    regenerateToken() {
+        let api = new swaggerAPI.DefaultApi(fetch, configServer);
+        api.regenerateToken({
+            uuid: this.uuid
+        }).then(resp => {
+            this.token = resp.token;
+        })
+    }
+
+    mounted() {
+        this.api.getRoute({
+            uuid: this.uuid
+        }).then(route => {
+            Object.keys(route).forEach(key => {
+                (<any>this)[key] = (<any>route)[key];
+            })
+
+            this.initName = route.name;
+
+            this.initData = {
+                name: route.name,
+                destination: route.destination
+            }
+
+            this.init = true
+        }).catch(e => {
+            this.errorText = e.toString()
+        })
+    }
+}
+</script>
+
