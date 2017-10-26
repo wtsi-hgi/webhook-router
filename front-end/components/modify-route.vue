@@ -1,6 +1,13 @@
 <template>
 <div>
-<whr-navbar></whr-navbar>
+<whr-navbar>
+    <span class="divider">&nbsp; </span>
+    <router-link to="/">
+        <button type="button" class="btn btn-outline-secondary">
+            <span class="oi oi-chevron-left"></span> Back
+        </button>
+    </router-link>
+</whr-navbar>
 <div id="base" class="container">
     <br />
     <h2>
@@ -45,11 +52,6 @@
         <hr>
     </div>
     <br />
-    <router-link to="/">
-        <button type="button" class="btn btn-outline-secondary">
-            <span class="oi oi-chevron-left"></span> Back
-        </button>
-    </router-link>
 
     <div class="modal fade" id="deleteConfirm" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">

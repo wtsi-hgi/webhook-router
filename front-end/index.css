@@ -1,15 +1,7 @@
-.route{
-    
-}
-
-.route .name{
-
-}
-
-.route .token{
-    
-}
-
-.route .destination{
-
+.divider {
+    border-left-style: solid;
+    border-left-color: rgba(255, 255, 255, 0.2);
+    border-left-width: 1px;
+    margin-left: 0px;
+    margin-right: 5px;
 }

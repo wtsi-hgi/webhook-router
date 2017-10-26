@@ -1,6 +1,13 @@
 <template>
 <div>
-<whr-navbar></whr-navbar>
+<whr-navbar>
+    <span class="divider">&nbsp; </span>
+    <router-link to="/">
+        <button type="button" class="btn btn-outline-secondary">
+            <span class="oi oi-chevron-left"></span> Back
+        </button>
+    </router-link>
+</whr-navbar>
   <div class="container">
     <br/>
     <form @submit.prevent="postForm">
