@@ -1,38 +1,55 @@
 <template>
+<div>
+<whr-navbar></whr-navbar>
 <div id="base" class="container">
     <br />
     <h2>
-        Route: "{{initName}}"
-        <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm"
+        <span>
+            Route: "{{initName}}"
+        </span>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm"
             id="deleteButton" style="margin-left: 10px; ">Delete Route</button>
     </h2>
-    <br/>
-    <form @submit.prevent="postForm">
-        <p>
-            <label for="route-name">Name:</label>
-            <input type="text" required class="form-control" placeholder="Route Name" 
-                id="route-name" required v-model="name">
-        </p>
-        <p>
-            <label for="route-destination">Destination:</label>
-            <input type="url" class="form-control" placeholder="Route Destination"
-                id="route-destination" required v-model="destination">
-        </p>
-        <button type="submit" class="btn btn-success" :disabled="!modified">Save Changes</button>
+    <hr>
+    <div style="padding-left: 10px">
+        <form @submit.prevent="postForm">
+            <p>
+                <label for="route-name">Name:</label>
+                <input type="text" required class="form-control" placeholder="Route Name" 
+                    id="route-name" required v-model="name">
+            </p>
+            <p>
+                <label for="route-destination">Destination:</label>
+                <input type="url" class="form-control" placeholder="Route Destination"
+                    id="route-destination" required v-model="destination">
+            </p>
+            <button type="submit" class="btn btn-success" :disabled="!modified">Save Changes</button>
+        </form>
         <hr>
-        <label for="route-destination">Token:</label>
-        <code>{{token}}</code>
-        <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
-            Regenerate Token</button>
-        <br />
-        <label for="route-destination">UUID:</label>
-        <code>{{uuid}}</code>
+        <div style="padding-left: 10px">
+            <label for="route-destination">Token:</label>
+            <code>{{token}}</code>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
+                Regenerate Token</button>
+            <br />
+            <label for="route-destination">UUID:</label>
+            <code>{{uuid}}</code>
+        </div>
         <hr>
-        Route location: 
-        <code>
-            {{routingServer}}/{{token}}
-        </code>
-    </form>
+        <div style="padding-left: 10px">
+            Route location: 
+            <code>
+                {{routingServer}}/{{token}}
+            </code>
+        </div>
+        <hr>
+    </div>
+    <br />
+    <router-link to="/">
+        <button type="button" class="btn btn-outline-secondary">
+            <span class="oi oi-chevron-left"></span> Back
+        </button>
+    </router-link>
 
     <div class="modal fade" id="deleteConfirm" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -76,16 +93,28 @@
         </div>
     </div>
 </div>
+</div>
 </template>
+<style>
+input{
+    margin-left: 10px;
+}
+</style>
+
+
 <script lang="ts">
 import Vue from "vue";
 import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
 import {configServer, routingServer} from "../config"
+import NavBarComponent from "./whr-navbar.vue";
 
 @Component({
     props: {
         uuid: String
+    },
+    components: {
+        "whr-navbar": NavBarComponent
     }
 })
 export default class extends Vue {

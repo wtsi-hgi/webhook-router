@@ -1,4 +1,6 @@
 <template>
+<div>
+<whr-navbar></whr-navbar>
   <div class="container">
     <br/>
     <form @submit.prevent="postForm">
@@ -22,14 +24,20 @@
         <div id="error-element" class="text-danger">{{errorText}}</div>
     </form>
 </div>
+</div>
 </template>
 <script lang="ts">
 import Vue from "vue";
 import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
-import {configServer} from "../config"
+import {configServer} from "../config";
+import NavBarComponent from "./whr-navbar.vue";
 
-@Component
+@Component({
+    components: {
+        "whr-navbar": NavBarComponent
+    }
+})
 export default class extends Vue {
     errorText = ""
     name = ""
