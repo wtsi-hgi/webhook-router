@@ -170,7 +170,7 @@ class Server:
         Route = get_route_model(self._db)
         self._data_mapper = RouterDataMapper(Route)
         self._db.create_tables([Route], True)
-        self.app = connexion.FlaskApp(__name__, specification_dir=".", debug=debug)
+        self.app = connexion.App(__name__, specification_dir=".", debug=debug, server='tornado')
         CORS(self.app.app)
 
         self._set_error_handlers()
