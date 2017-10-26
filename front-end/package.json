@@ -20,10 +20,12 @@
     "vue-loader": "^13.3.0"
   },
   "dependencies": {
+    "css-loader": "^0.28.7",
     "isomorphic-fetch": "^2.2.1",
     "vue": "^2.5.2",
     "vue-class-component": "^6.0.0",
     "vue-router": "^3.0.1",
+    "vue-style-loader": "^3.0.3",
     "vue-template-compiler": "^2.5.2"
   }
 }
