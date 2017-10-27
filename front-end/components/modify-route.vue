@@ -10,50 +10,51 @@
 </whr-navbar>
 <div id="base" class="container">
     <br />
-    <h2>
-        <span>
-            Route: "{{initName}}"
-        </span>
-        <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm"
-            id="deleteButton" style="margin-left: 10px; ">Delete Route</button>
-    </h2>
-    <hr>
-    <div style="padding-left: 10px">
-        <form @submit.prevent="postForm">
-            <p>
-                <label for="route-name">Name:</label>
-                <input type="text" required class="form-control" placeholder="Route Name" 
-                    id="route-name" required v-model="name">
-            </p>
-            <p>
-                <label for="route-destination">Destination:</label>
-                <input type="url" class="form-control" placeholder="Route Destination"
-                    id="route-destination" required v-model="destination">
-            </p>
-            <button type="submit" class="btn btn-success" :disabled="!modified">Save Changes</button>
-        </form>
+    <errors ref="errors"></errors>
+    <div v-show="loaded">
+        <h2>
+            <span>
+                Route: "{{currData.name}}"
+            </span>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm"
+                id="deleteButton" style="margin-left: 10px; ">Delete Route</button>
+        </h2>
         <hr>
         <div style="padding-left: 10px">
-            <label for="route-destination">Token:</label>
-            <code>{{token}}</code>
-            <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
-                Regenerate Token</button>
-            <br />
-            <label for="route-destination">UUID:</label>
-            <code>{{uuid}}</code>
+            <form @submit.prevent="postForm">
+                <p>
+                    <label for="route-name">Name:</label>
+                    <input type="text" required class="form-control" placeholder="Route Name" 
+                        id="route-name" required v-model="name">
+                </p>
+                <p>
+                    <label for="route-destination">Destination:</label>
+                    <input type="url" class="form-control" placeholder="Route Destination"
+                        id="route-destination" required v-model="destination">
+                </p>
+                <button type="submit" class="btn btn-outline-success" :disabled="!modified">Save Changes</button>
+            </form>
+            <hr>
+            <div style="padding-left: 10px">
+                <label for="route-destination">Token:</label>
+                <code>{{token}}</code>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
+                    Regenerate Token</button>
+                <br />
+                <label for="route-destination">UUID:</label>
+                <code>{{uuid}}</code>
+            </div>
+            <hr>
+            <div style="padding-left: 10px">
+                Route location: 
+                <code>
+                    {{routingServer}}/{{token}}
+                </code>
+            </div>
         </div>
-        <hr>
-        <div style="padding-left: 10px">
-            Route location: 
-            <code>
-                {{routingServer}}/{{token}}
-            </code>
-        </div>
-        <hr>
     </div>
-    <br />
 
-    <div class="modal fade" id="deleteConfirm" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmLabel" aria-hidden="true">
+    <div class="modal fade" id="deleteConfirm" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmLabel" aria-hidden="true" ref="deleteModal">
         <div class="modal-dialog" role="document">
           <div class="modal-content">
             <div class="modal-header">
@@ -63,7 +64,7 @@
               </button>
             </div>
             <div class="modal-body">
-                Are you sure you want to delete "{{initName}}"?
+                Are you sure you want to delete "{{currData.name}}"?
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -73,7 +74,7 @@
         </div>
     </div>
 
-    <div class="modal fade" id="regenerateConfirm" tabindex="-1" role="dialog" aria-labelledby="regenerateConfirmLabel" aria-hidden="true">
+    <div class="modal fade" id="regenerateConfirm" tabindex="-1" role="dialog" aria-labelledby="regenerateConfirmLabel" aria-hidden="true" ref="regenerateModal">
         <div class="modal-dialog" role="document">
           <div class="modal-content">
             <div class="modal-header">
@@ -83,7 +84,7 @@
               </button>
             </div>
             <div class="modal-body">
-                Are you sure you want to regenerate the token of "{{initName}}"?
+                Are you sure you want to regenerate the token of "{{currData.name}}"?
                 <br />
                 <small>Regenerating tokens will break all links to this route.</small>
             </div>
@@ -97,7 +98,7 @@
 </div>
 </div>
 </template>
-<style>
+<style scoped>
 input{
     margin-left: 10px;
 }
@@ -110,91 +111,111 @@ import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
 import {configServer, routingServer} from "../config"
 import NavBarComponent from "./whr-navbar.vue";
+import ErrorsComponent from "./errors.vue";
+import * as utils from "../utils";
 
 @Component({
     props: {
         uuid: String
     },
     components: {
-        "whr-navbar": NavBarComponent
+        "whr-navbar": NavBarComponent,
+        "errors": ErrorsComponent
     }
 })
 export default class extends Vue {
     uuid: string
     errorText = ""
     name = ""
-    initName = ""
     destination = ""
     token = ""
-    init = false
+    loaded = false
     routingServer = routingServer
+    $refs: {
+        errors: ErrorsComponent;
+        deleteModal: HTMLElement;
+        regenerateModal: HTMLElement;
+    }
 
-    initData: {
-        name: string
-        destination: string
+    currData = {
+        name: "",
+        destination: ""
     }
 
     get modified () {
-        return this.init && !(this.initData.name == this.name 
-                  && this.initData.destination == this.destination)
+        return this.loaded && !(this.currData.name == this.name 
+                  && this.currData.destination == this.destination)
     }
 
-    api = new swaggerAPI.DefaultApi(fetch, configServer);
+    api = new swaggerAPI.DefaultApi(utils.fetchErrorWrapper((e) => {
+        this.$refs.errors.addError(e);
+    }), configServer);
 
-    postForm(){
-        this.api.patchRoute({
+    async postForm(){
+        let patchResult = await this.api.patchRoute({
             uuid: this.uuid,
             newInfo: {
                 name: this.name,
                 destination: this.destination
             }
-        }).then(result => {
-            console.log(result)
-        }).catch(e => {
-            this.errorText = "Error: " + e.toString()
-        })
-    }
-
-    cancelForm() {
-        this.$router.push("/");
-    }
-
-    deleteRoute() {
-        this.api.deleteRoute({
-            uuid: this.uuid
         })
 
-        this.$router.push("/");
+        this.currData = {
+            name: this.name,
+            destination: this.destination
+        }
     }
 
-    regenerateToken() {
-        let api = new swaggerAPI.DefaultApi(fetch, configServer);
-        api.regenerateToken({
+    async deleteRoute() {
+        let success = false;
+        try {
+            await this.api.deleteRoute({uuid: this.uuid});
+            success = true;
+        }
+        finally{
+            await utils.closeModal(this.$refs.deleteModal);
+        }
+
+        if(success){
+            this.$router.push("/");
+        }
+    }
+
+    async regenerateToken() {
+        let resp = await this.api.regenerateToken({
             uuid: this.uuid
-        }).then(resp => {
-            this.token = resp.token;
         })
+        
+        this.token = resp.token;
     }
 
-    mounted() {
-        this.api.getRoute({
-            uuid: this.uuid
-        }).then(route => {
-            Object.keys(route).forEach(key => {
-                (<any>this)[key] = (<any>route)[key];
+    async mounted() {
+        try{
+            var route = await this.api.getRoute({
+                uuid: this.uuid
             })
-
-            this.initName = route.name;
-
-            this.initData = {
-                name: route.name,
-                destination: route.destination
+        }
+        catch(e){
+            if(e instanceof Response){
+                this.$refs.errors.addErrorText((await e.json()).error, true);
+                return
             }
 
-            this.init = true
-        }).catch(e => {
-            this.errorText = e.toString()
+            throw e;
+        }
+
+        Object.keys(route).forEach(key => {
+            (<any>this)[key] = (<any>route)[key];
         })
+
+        this.currData.name = route.name;
+
+        this.currData = {
+            name: route.name,
+            destination: route.destination
+        }
+
+        this.loaded = true
     }
 }
 </script>
