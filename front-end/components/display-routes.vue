@@ -6,9 +6,10 @@
             <button type="button" class="btn btn-outline-primary"><span class="oi oi-plus"></span> New Route</button>
         </router-link>
         <span class="mr-auto"></span><!--Move the other elements to the left-->
-        <input class="form-inline form-control mr-sm-2" style="width: 200px" type="search" placeholder="Search" aria-label="Search">
+        <input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search" aria-label="Search">
     </whr-navbar>
-    <table class="table table-hover table-striped">
+    <errors ref="errors"></errors>
+    <table v-show="loaded" class="table table-hover table-striped">
         <thead>
             <tr>
                 <th width="20%">
@@ -39,13 +40,24 @@
 </div>
 </template>
 
-<style>
+<style scoped>
 .divider {
     border-left-style: solid;
     border-left-color: rgba(255, 255, 255, 0.2);
     border-left-width: 1px;
     margin-left: 0px;
     margin-right: 5px;
+}
+
+#search {
+    width: 200px;
+    transition-property: width;
+    transition-duration: 0.2s;
+}
+
+#search:focus{
+    width: 300px;
+    
 }
 </style>
 
@@ -55,22 +67,38 @@ import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
 import {configServer} from "../config"
 import NavBarComponent from "./whr-navbar.vue";
+import * as utils from "../utils";
+import ErrorsComponent from "./errors.vue";
 
 @Component({
-    beforeRouteEnter: async function (to, from, next) {   
-        let api = new swaggerAPI.DefaultApi(fetch, configServer);
-        let routes = await api.getAllRoutes();
-        next((vue: any) => vue.filteredRoutes = routes);
-    },
     components: {
-        "whr-navbar": NavBarComponent
+        "whr-navbar": NavBarComponent,
+        "errors": ErrorsComponent
     }
 })
 export default class extends Vue {
     errorText = ""
     filteredRoutes:swaggerAPI.Routes = []
+    loaded = false
 
-    private api = new swaggerAPI.DefaultApi(fetch, configServer);
+    $refs: {
+        errors: ErrorsComponent;
+    }
+
+    api = new swaggerAPI.DefaultApi(fetch, configServer);
+
+    async mounted(){
+        try{
+            var routes = await this.api.getAllRoutes();
+        }
+        catch(e){
+            this.$refs.errors.addError(e, true);
+            throw e;
+        }
+
+        this.loaded = true;
+        this.filteredRoutes = routes;
+    }
 
     watch: {
         // call again the method if the route changes

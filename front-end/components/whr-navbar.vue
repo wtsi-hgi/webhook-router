@@ -20,3 +20,9 @@
     vertical-align: middle;
 }
 </style>
+
+<script lang="ts">
+export default {
+  
+}
+</script>

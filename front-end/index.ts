@@ -12,14 +12,13 @@ const router = new VueRouter({
     mode: "hash",
     base: __dirname,
     routes: [
-        {path: "/", component: DisplayRoutesComponent},
-        {path: "/add-route", component: AddRouteComponent},
-        {path: "/routes/:uuid", component: ModifyRoute, props: true}
+        {path: "/", component: DisplayRoutesComponent, name: "home"},
+        {path: "/add-route", component: AddRouteComponent, name: "add-route"},
+        {path: "/routes/:uuid", component: ModifyRoute, props: true, name: "modify-route"}
     ]
 })
 
 const vue = new Vue({
     router,
-    el: "#site",
-    template: `<router-view class="view"></router-view>`
+    el: "#site"
 })
