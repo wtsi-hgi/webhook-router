@@ -7,6 +7,8 @@
             <span class="oi oi-chevron-left"></span> Back
         </button>
     </router-link>
+    <span class="mr-auto"></span>
+    <slot name="logoutButton"></slot>
 </whr-navbar>
 <div id="base" class="container">
     <br />
@@ -116,7 +118,8 @@ import * as utils from "../utils";
 
 @Component({
     props: {
-        uuid: String
+        uuid: String,
+        googleToken: String
     },
     components: {
         "whr-navbar": NavBarComponent,
@@ -142,6 +145,9 @@ export default class extends Vue {
         destination: ""
     }
 
+    googleToken: string;
+    readonly authOptions = utils.getAuthOptions(this.googleToken);
+
     get modified () {
         return this.loaded && !(this.currData.name == this.name 
                   && this.currData.destination == this.destination)
@@ -158,7 +164,7 @@ export default class extends Vue {
                 name: this.name,
                 destination: this.destination
             }
-        })
+        }, this.authOptions)
 
         this.currData = {
             name: this.name,
@@ -169,7 +175,7 @@ export default class extends Vue {
     async deleteRoute() {
         let success = false;
         try {
-            await this.api.deleteRoute({uuid: this.uuid});
+            await this.api.deleteRoute({uuid: this.uuid}, this.authOptions);
             success = true;
         }
         finally{
@@ -184,7 +190,7 @@ export default class extends Vue {
     async regenerateToken() {
         let resp = await this.api.regenerateToken({
             uuid: this.uuid
-        })
+        }, this.authOptions)
         
         this.token = resp.token;
     }

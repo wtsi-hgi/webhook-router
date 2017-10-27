@@ -24,3 +24,11 @@ export function fetchErrorWrapper(errorFunction: (error: any) => any){
         }
     }
 }
+
+export function getAuthOptions(googleToken: string){
+    return {
+        headers: {
+            "Google-Auth-Token": googleToken
+        }
+    }
+}

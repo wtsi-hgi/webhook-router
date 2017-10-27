@@ -6,7 +6,9 @@
             <button type="button" class="btn btn-outline-primary"><span class="oi oi-plus"></span> New Route</button>
         </router-link>
         <span class="mr-auto"></span><!--Move the other elements to the left-->
-        <input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search" aria-label="Search">
+        <!--<input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search" aria-label="Search">
+        <span class="divider">&nbsp; </span>-->
+        <slot name="logoutButton"></slot>
     </whr-navbar>
     <errors ref="errors"></errors>
     <table v-show="loaded" class="table table-hover table-striped">
@@ -74,12 +76,17 @@ import ErrorsComponent from "./errors.vue";
     components: {
         "whr-navbar": NavBarComponent,
         "errors": ErrorsComponent
+    },
+    props: {
+        googleToken: String
     }
 })
 export default class extends Vue {
     errorText = ""
     filteredRoutes:swaggerAPI.Routes = []
     loaded = false
+    googleToken: string;
+    readonly authOptions = utils.getAuthOptions(this.googleToken);
 
     $refs: {
         errors: ErrorsComponent;
@@ -89,7 +96,7 @@ export default class extends Vue {
 
     async mounted(){
         try{
-            var routes = await this.api.getAllRoutes();
+            var routes = await this.api.getAllRoutes(this.authOptions);
         }
         catch(e){
             this.$refs.errors.addError(e, true);
@@ -100,18 +107,8 @@ export default class extends Vue {
         this.filteredRoutes = routes;
     }
 
-    watch: {
-        // call again the method if the route changes
-        '$route': 'created'
-    }
-
     onRouteClick(uuid: string){
         this.$router.push(`/routes/${uuid}`)
-    }
-
-    async fetchData() {
-        let routes = await this.api.getAllRoutes()
-        this.filteredRoutes = routes;
     }
 }
 </script>

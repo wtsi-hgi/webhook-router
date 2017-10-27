@@ -7,6 +7,8 @@
             <span class="oi oi-chevron-left"></span> Back
         </button>
     </router-link>
+    <span class="mr-auto"></span>
+    <slot name="logoutButton"></slot>
 </whr-navbar>
   <div class="container">
     <br/>
@@ -52,12 +54,17 @@ import ErrorsComponent from "./errors.vue";
     components: {
         "whr-navbar": NavBarComponent,
         "errors": ErrorsComponent
+    },
+    props: {
+        googleToken: String
     }
 })
 export default class extends Vue {
     errorText = ""
     name = ""
     destination = ""
+    googleToken: string;
+    readonly authOptions = utils.getAuthOptions(this.googleToken);
 
     $refs: {
         errors: ErrorsComponent;
@@ -72,9 +79,8 @@ export default class extends Vue {
             newRoute: {
                 destination: this.destination,
                 name: this.name
-            },
-    
-        })
+            }
+        }, this.authOptions)
 
         this.$router.push("/");
     }

@@ -274,4 +274,4 @@ if __name__ == "__main__":
 
     options = parser.parse_args()
 
-    main(options.debug, options.port, options.host)
+    main(options.debug, options.port, options.host, options.client_id)
