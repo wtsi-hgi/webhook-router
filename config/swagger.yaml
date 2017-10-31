@@ -149,8 +149,12 @@ definitions:
       - $ref: "#/definitions/NewRoute"
       - required:
           - token
+          - owner
+          - uuid
         properties:
           token:
+            type: string
+          uuid:
             type: string
           owner:
             type: string

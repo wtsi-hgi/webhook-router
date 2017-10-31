@@ -35,7 +35,13 @@ def get_route_json(route: AbstractBaseRoute):
     """
     Gets the json respresentation of given route, for returning to the user
     """
-    return model_to_dict(route)
+    public_fields = ["uuid", "owner", "name", "destination", "token"] # i.e. not id
+    new_ob = {}
+
+    for field in public_fields:
+        new_ob[field] = getattr(route, field)
+
+    return new_ob
 
 class StatusCodes:
     CREATED = 201
@@ -270,7 +276,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
-    parser.add_argument("--client_id", help="Google client ID for oauth authentication", default="127.0.0.1")
+    parser.add_argument("--client_id", help="Google client ID for oauth authentication", required=True)
 
     options = parser.parse_args()
 
