@@ -4,8 +4,9 @@
         <whr-navbar></whr-navbar>
     </div>
     <signin v-else-if="state=='not_signed_in'" @signedIn="token => login(token)"></signin>
-    <router-view v-else class="view" :key="$route.fullPath" :googleToken="googleToken" thing="2">
+    <router-view v-else class="view" :key="$route.fullPath" :googleToken="googleToken" :progressBar="progressBar" :api="api">
         <button type="button" class="btn btn-outline-warning" slot="logoutButton" @click="logout">Logout</button>
+        <errors ref="errors" slot="errors"></errors>
     </router-view>
     <!--Setting the key as above reloads the page on path change-->
 </div>
@@ -19,7 +20,13 @@ import AddRouteComponent from "./add-route.vue";
 import ModifyRoute from "./modify-route.vue";
 import SignInComponent from "./signin.vue";
 import NavBarComponent from "./whr-navbar.vue";
-import Component from 'vue-class-component'
+import NotFoundComponent from "./404-not-found.vue";
+import Component from 'vue-class-component';
+import ErrorsComponent from "./errors.vue";
+import * as swaggerAPI from "../api";
+import * as utils from "../utils";
+import {configServer} from "../config"
+var Mprogress = require("mprogress/mprogress.min.js"); // Do this, as the main module is not exported
 
 const router = new VueRouter({
     mode: "hash",
@@ -27,22 +34,55 @@ const router = new VueRouter({
     routes: [
         {path: "/", component: DisplayRoutesComponent, name: "home"},
         {path: "/add-route", component: AddRouteComponent, name: "add-route"},
-        {path: "/routes/:uuid", component: ModifyRoute, props: true, name: "modify-route"}
+        {path: "/routes/:uuid", component: ModifyRoute, props: true, name: "modify-route"},
+        {path: "*", component: NotFoundComponent, name: "home"}
     ]
 })
 
 @Component({
     components: {
         "whr-navbar": NavBarComponent,
-        "signin": SignInComponent
+        "signin": SignInComponent,
+        "errors": ErrorsComponent
     },
-    router: router
+    router: router,
+    watch: {
+        "$route": function () {
+            (<any>this).progressBar.stop();
+        }
+    }
 })
 export default class extends Vue {
     signedin = false
     state = "start"
     googleToken = ""
     auth: gapi.auth2.GoogleAuth;
+
+    api = new swaggerAPI.DefaultApi(this.fetchWrapper.bind(this), configServer);
+
+    progressBar = new Mprogress({
+        template: 3, // 3 = indeterminate progress bar
+        parent: 'body'
+    });
+
+    $refs: {
+        errors: ErrorsComponent;
+    }
+
+    private async fetchWrapper(input: RequestInfo, init?: RequestInit){
+        this.progressBar.start();
+        
+        try{
+            return await fetch(input, init);
+        }
+        catch(e){
+            this.$refs.errors.addError(e);
+            throw e;
+        }
+        finally{
+            this.progressBar.end();
+        }
+    }
 
     login(token: string){
         this.googleToken = token;

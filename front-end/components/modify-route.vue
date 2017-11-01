@@ -12,7 +12,7 @@
 </whr-navbar>
 <div id="base" class="container">
     <br />
-    <errors ref="errors"></errors>
+    <slot name="errors" ref="errors"></slot>
     <div v-show="loaded">
         <h2>
             <span>
@@ -119,7 +119,8 @@ import * as utils from "../utils";
 @Component({
     props: {
         uuid: String,
-        googleToken: String
+        googleToken: String,
+        api: Object
     },
     components: {
         "whr-navbar": NavBarComponent,
@@ -153,9 +154,7 @@ export default class extends Vue {
                   && this.currData.destination == this.destination)
     }
 
-    api = new swaggerAPI.DefaultApi(utils.fetchErrorWrapper((e) => {
-        this.$refs.errors.addError(e);
-    }), configServer);
+    api: swaggerAPI.DefaultApi;
 
     async postForm(){
         let patchResult = await this.api.patchRoute({
@@ -199,7 +198,7 @@ export default class extends Vue {
         try{
             var route = await this.api.getRoute({
                 uuid: this.uuid
-            })
+            }, this.authOptions)
         }
         catch(e){
             if(e instanceof Response){

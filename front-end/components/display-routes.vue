@@ -10,7 +10,7 @@
         <span class="divider">&nbsp; </span>-->
         <slot name="logoutButton"></slot>
     </whr-navbar>
-    <errors ref="errors"></errors>
+    <slot name="errors"></slot>
     <table v-show="loaded" class="table table-hover table-striped">
         <thead>
             <tr>
@@ -70,15 +70,14 @@ import Component from 'vue-class-component'
 import {configServer} from "../config"
 import NavBarComponent from "./whr-navbar.vue";
 import * as utils from "../utils";
-import ErrorsComponent from "./errors.vue";
 
 @Component({
     components: {
-        "whr-navbar": NavBarComponent,
-        "errors": ErrorsComponent
+        "whr-navbar": NavBarComponent
     },
     props: {
-        googleToken: String
+        googleToken: String,
+        api: Object
     }
 })
 export default class extends Vue {
@@ -88,23 +87,14 @@ export default class extends Vue {
     googleToken: string;
     readonly authOptions = utils.getAuthOptions(this.googleToken);
 
-    $refs: {
-        errors: ErrorsComponent;
-    }
-
-    api = new swaggerAPI.DefaultApi(fetch, configServer);
+    api: swaggerAPI.DefaultApi;
 
     async mounted(){
-        try{
-            var routes = await this.api.getAllRoutes(this.authOptions);
-        }
-        catch(e){
-            this.$refs.errors.addError(e, true);
-            throw e;
-        }
+        var routes = await this.api.getAllRoutes(this.authOptions);
 
         this.loaded = true;
         this.filteredRoutes = routes;
+        
     }
 
     onRouteClick(uuid: string){

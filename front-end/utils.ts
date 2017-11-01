@@ -13,18 +13,6 @@ export function closeModal(modal: HTMLElement){
     })
 }
 
-export function fetchErrorWrapper(errorFunction: (error: any) => any){
-    return async (input: RequestInfo, init?: RequestInit) => {
-        try{
-            return await fetch(input, init);
-        }
-        catch(e){
-            errorFunction(e);
-            throw e;
-        }
-    }
-}
-
 export function getAuthOptions(googleToken: string){
     return {
         headers: {

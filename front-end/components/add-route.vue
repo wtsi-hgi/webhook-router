@@ -12,7 +12,7 @@
 </whr-navbar>
   <div class="container">
     <br/>
-    <errors ref="errors"></errors>
+    <slot name="errors"></slot>
     <h2>
         Create a new route
     </h2>
@@ -45,18 +45,16 @@ input{
 import Vue from "vue";
 import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
-import {configServer} from "../config";
 import NavBarComponent from "./whr-navbar.vue";
 import * as utils from "../utils";
-import ErrorsComponent from "./errors.vue";
 
 @Component({
     components: {
         "whr-navbar": NavBarComponent,
-        "errors": ErrorsComponent
     },
     props: {
-        googleToken: String
+        googleToken: String,
+        api: Object
     }
 })
 export default class extends Vue {
@@ -66,13 +64,7 @@ export default class extends Vue {
     googleToken: string;
     readonly authOptions = utils.getAuthOptions(this.googleToken);
 
-    $refs: {
-        errors: ErrorsComponent;
-    }
-
-    api = new swaggerAPI.DefaultApi(utils.fetchErrorWrapper((e) => {
-        this.$refs.errors.addError(e);
-    }), configServer);
+    api: swaggerAPI.DefaultApi;
 
     async postForm(){
         await this.api.addRoute({
