@@ -22,7 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE
 */
 
-var webpack = require('webpack')
+var webpack = require('webpack');
+var ExtractTextPlugin = require("extract-text-webpack-plugin");
 
 
 module.exports = {
@@ -32,7 +33,7 @@ module.exports = {
     },
     devtool: 'source-map',
     resolve: {
-        extensions: ['.webpack.js', '.web.js', '.ts', '.tsx', '.js', '.json', '.html'],
+        extensions: ['.webpack.js', '.web.js', '.ts', '.d.ts', '.tsx', '.js', '.json', '.html'],
         alias: {
             'vue$': 'vue/dist/vue.esm.js'
         }
@@ -41,17 +42,7 @@ module.exports = {
         rules: [
             {
                 test: /\.vue$/,
-                loader: 'vue-loader',
-                options: {
-                    loaders: {
-                        // Since sass-loader (weirdly) has SCSS as its default parse mode, we map
-                        // the "scss" and "sass" values for the lang attribute to the right configs here.
-                        // other preprocessors should work out of the box, no loader config like this necessary.
-                        'scss': 'vue-style-loader!css-loader!sass-loader',
-                        'sass': 'vue-style-loader!css-loader!sass-loader?indentedSyntax',
-                    }
-                    // other vue-loader options go here
-                }
+                loader: 'vue-loader'
             },
             {
                 test: /\.tsx?$/,
@@ -63,10 +54,30 @@ module.exports = {
             },
             {
                 test: /\.css$/,
-                use: ['css-loader']
+                loader: ExtractTextPlugin.extract({
+                    fallback: "style-loader",
+                    use: "css-loader"
+                })
+            },
+            {
+                test: /\.(png|jpg|gif|svg|ttf|eot|woff|otf|svg)$/,
+                loader: 'file-loader',
+                options: {
+                    name: 'fonts/[name].[ext]?[hash]'
+                }
             }
         ]
-    }
+    },
+    plugins: [
+        new ExtractTextPlugin("bundle.css"),
+        new webpack.ProvidePlugin({
+            $: 'jquery',
+            jQuery: 'jquery',
+            'window.jQuery': 'jquery',
+            Popper: ['popper.js', 'default']
+            // globals for bootstrap
+        })
+    ]
 }
 
 if (process.env.NODE_ENV === 'production') {

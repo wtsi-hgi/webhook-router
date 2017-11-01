@@ -28,8 +28,7 @@ export default class extends Vue {
             scope: "profile email",
             theme: 'dark',
             longtitle: true,
-            onsuccess: (user) => {
-                console.log(user.getAuthResponse().id_token)
+            onsuccess: user => {
                 this.$emit("signedIn", user.getAuthResponse().id_token)
             }
         });

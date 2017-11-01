@@ -4,7 +4,7 @@
         <whr-navbar></whr-navbar>
     </div>
     <signin v-else-if="state=='not_signed_in'" @signedIn="token => login(token)"></signin>
-    <router-view v-else class="view" :key="$route.fullPath" :googleToken="googleToken" :progressBar="progressBar" :api="api">
+    <router-view v-else class="view" :key="$route.fullPath" :googleToken="googleToken" :api="api">
         <button type="button" class="btn btn-outline-warning" slot="logoutButton" @click="logout">Logout</button>
         <errors ref="errors" slot="errors"></errors>
     </router-view>
@@ -48,7 +48,7 @@ const router = new VueRouter({
     router: router,
     watch: {
         "$route": function () {
-            (<any>this).progressBar.stop();
+            (<any>this).progressBar.end();
         }
     }
 })
@@ -56,7 +56,7 @@ export default class extends Vue {
     signedin = false
     state = "start"
     googleToken = ""
-    auth: gapi.auth2.GoogleAuth;
+    auth: any;
 
     api = new swaggerAPI.DefaultApi(this.fetchWrapper.bind(this), configServer);
 

@@ -1,6 +1,6 @@
 <template>
 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-    <img class="sanger-logo" src="https://avatars3.githubusercontent.com/u/2567468?s=200&v=4" />
+    <img class="sanger-logo" src="img/logo.png" />
     <router-link class="navbar-brand" to="/">
         Webhook Router
     </router-link>
