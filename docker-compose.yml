@@ -1,0 +1,27 @@
+version: '3'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.3
+  kibana:
+    image: docker.elastic.co/kibana/kibana:5.6.3
+    depends_on:
+    - "elasticsearch"
+    ports:
+    - "5601:5601"
+  configserver:
+    build: config
+    depends_on:
+    - "elasticsearch"
+  router:
+    build: router
+    ports:
+     - "8081:8081"
+    depends_on:
+    - "elasticsearch"
+    - "configserver"
+  front-end:
+    build: front-end
+    ports:
+    - "8080:80"
+    depends_on:
+    - "configserver"
