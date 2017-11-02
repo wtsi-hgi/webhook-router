@@ -3,3 +3,4 @@ peewee
 google_auth
 flask-cors
 tornado
+python-json-logger

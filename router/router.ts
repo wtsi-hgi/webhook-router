@@ -5,6 +5,21 @@ import fetch from "node-fetch";
 import httpProxy = require("http-proxy");
 var route = require("router")();
 import argparse = require("argparse");
+import winston = require("winston");
+var ElasticSearch = require('winston-elasticsearch');
+
+winston.remove(winston.transports.Console);
+
+const logger = new winston.Logger({
+    transports: [
+        new winston.transports.Console({
+            colorize: true
+        }),
+        new winston.transports.File({
+            filename: "logs.log"
+        })
+    ]
+})
 
 var writeNotFound = (resp: any) => writeError("Not found", 404, resp);
 var writeInternalError = (resp: any) => writeError("Internal server error", 500, resp);
@@ -17,20 +32,29 @@ function writeError(message: string, code: number, response: http.ServerResponse
     response.end(JSON.stringify({error: message}, undefined, 4)) // Space out the response using 4 spaces
 }
 
-async function getDestinationFromToken(token: string){
-    var configServerResp = await fetch(`${args.configServer}/routes/token/${token}`)
+async function getRouteFromToken(token: string){
+    var configServerResp = await fetch(`${args.configServer}/routes/token/${token}`);
+
     try{
         var configServerJSON = await configServerResp.json();
     }
     catch(error){
-        throw new Error(`Error in parsing config server response: ${error}`);
+        winston.error("Cannot parse config server response", {
+            error: error
+        });
+
+        throw error
     }
 
     if(typeof configServerJSON.error == "string"){
+        winston.error("Config server error", {
+            error: configServerJSON.error
+        });
+
         throw new Error(`Config server error: ${configServerJSON.error}`);
     }
 
-    return <string>configServerJSON.destination;
+    return configServerJSON;
 }
 
 let proxy = httpProxy.createProxyServer(<any>{
@@ -59,12 +83,19 @@ route.post("/:token", (request: http.IncomingMessage & {params: any}, response: 
     let token = request.params.token;
 
     (async () => {
-        let destination = await getDestinationFromToken(token);
-        await routeRequest(request, response, destination);
+        let destination = await getRouteFromToken(token);
 
-        console.error(`Correctly routed token "${token}" to location ${destination}`)
+        await routeRequest(request, response, destination);
+        
+        logger.info("Correctly routed", {
+            token: token,
+            destination: destination
+        });
     })().catch(error => {
-        console.error(`Failed routing of ${token}. ${error}`);
+        logger.error("Failed routing", {
+            token: token,
+            error: error
+        })
 
         writeInternalError(response);
     })
@@ -81,7 +112,9 @@ let args = parser.parseArgs();
 
 http.createServer((request, response) => {
     route(request, response, (error: any) => {
-        console.error(error);
+        logger.error("Routing exception", {
+            error: error
+        })
 
         if(!error){
             writeNotFound(response)
@@ -91,3 +124,4 @@ http.createServer((request, response) => {
         }
     })
 }).listen(args.port, args.host);
+

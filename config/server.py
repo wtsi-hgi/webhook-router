@@ -2,17 +2,51 @@ import uuid
 import secrets
 import argparse
 from urllib.parse import urlparse
-from functools import partial
+from functools import partial, wraps
 from abc import ABC, ABCMeta
+import logging
+from typing import Type, Callable
 
+from pythonjsonlogger import jsonlogger
 import connexion
 import flask
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist
-from playhouse.shortcuts import model_to_dict
-from typing import Type, Callable
 from flask_cors import CORS
+
+LOGGING_CONFIG = "(asctime) (message) (levelname)"
+
+def add_file_log_handler(logger):
+    """
+    Configures the given logger to output to the log file "logs.log", in order to be picked up
+    by a fluent-bit parser
+    """
+    handler = logging.FileHandler("logs.log")
+    json_formatter = jsonlogger.JsonFormatter(LOGGING_CONFIG)
+    handler.setFormatter(json_formatter)
+    logger.addHandler(handler)
+
+
+def create_logger():
+    """
+    Creates and returns the logger for this file
+    """
+    logger = logging.getLogger("config_server")
+    logger.propagate = False
+    logger.setLevel(logging.INFO)
+    json_formatter = jsonlogger.JsonFormatter(LOGGING_CONFIG)
+
+    stdout_handler = logging.StreamHandler()
+    stdout_handler.setFormatter(json_formatter)
+    logger.addHandler(stdout_handler)
+
+    add_file_log_handler(logger)
+
+    return logger
+
+logger = create_logger()
+
 
 class AbstractBaseRoute(Model):
     uuid = CharField()
@@ -66,6 +100,7 @@ class InvalidRouteUUIDError(Exception):
 
 class InvalidURLError(Exception):
     pass
+
 
 class InvalidRouteTokenError(Exception):
     pass
@@ -140,6 +175,7 @@ class RouterDataMapper:
             return routes[0]
 
     def get_all(self, user: str):
+        aslknlk
         return self._Route.select().where(self._Route.owner == user)
 
     def add(self, owner: str, destination: str, name: str):
@@ -180,14 +216,75 @@ class Server:
         CORS(self.app.app)
 
         self._set_error_handlers()
+        self._setup_logging()
 
         self.app.add_api('swagger.yaml', resolver=connexion.Resolver(self._resolve_name), validate_responses=True)
+
+    def _setup_logging(self):
+        # Turn off tornado.access logging, as we handle it using our own logs
+        logging.getLogger("tornado.access").setLevel(logging.CRITICAL)
+
+        add_file_log_handler(logging.root)
+
+        # This is needed, as flask logs aren't propogated to the root logger
+        add_file_log_handler(self.app.app.logger)
+
+        self.app.app.after_request(self._log_http_request)
+
+    @staticmethod
+    def _log_http_request(resp: flask.Response):
+        req = flask.request # type: flask.Request
+        if resp.status_code < 400:
+            log_method = logger.info
+        else:
+            log_method = logger.warning
+        
+        log_method("Http request", extra={
+            "method": req.method,
+            "url": req.url,
+            "ip": req.remote_addr,
+            "user_agent": str(req.user_agent),
+            "status_code": resp.status_code
+        })
+
+        return resp
+
     
+    def _log_swagger_request(self, method_name, swagger_params, response):
+        try:
+            user = self._auth()
+        except InvalidCredentialsError:
+            user = "<NONE>"
+
+        logger.info("Swagger access", extra={
+            "method_name": method_name,
+            "params": swagger_params,
+            "user": user,
+            "response": response
+        })
+
     def _resolve_name(self, name: str):
         """
-        From a swagger operationId, returns the correct class
+        From a swagger operationId, returns the correct function to use.
+
+        This also automatically decorates the function so the request and response is logged.
         """
-        return getattr(self, name)
+        func = getattr(self, name)
+        log_swagger_request = self._log_swagger_request
+
+        @wraps(func)
+        def name_stub(*args, **kwargs):
+            try:
+                resp = func(*args, **kwargs)
+            except:
+                resp = "<ERROR>"
+                raise
+            finally:
+                log_swagger_request(name, kwargs, resp)
+
+            return resp
+
+        return name_stub
 
     def _set_error_handler(self, error_class: Type[Exception], error_message: str, error_code: int):
         """
@@ -214,10 +311,11 @@ class Server:
         return None, StatusCodes.NO_CONTENT
 
     def get_by_token(self, token: str):
+        logger.info("get_by_token", extra={"token": token})
         return get_route_json(self._data_mapper.get_by_token(token))
 
     def delete_route(self, uuid: str):
-        self._auth()
+        email = self._auth()
 
         try:
             self._data_mapper.delete(uuid)
@@ -227,6 +325,8 @@ class Server:
         return None, StatusCodes.NO_CONTENT
 
     def get_route(self, uuid: str):
+        self._auth()
+
         return get_route_json(self._data_mapper.get(uuid))
 
     def get_all_routes(self):
@@ -269,6 +369,11 @@ def main(debug: bool, port: int, host: str, client_id: str=None):
         auth=test_auth if debug else partial(google_auth, client_id)
     )
 
+    logger.info("Server running", extra={
+        "port": port,
+        "host": host
+    })
+
     server.app.run(port=port, host=host)
 
 if __name__ == "__main__":
@@ -276,7 +381,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
-    parser.add_argument("--client_id", help="Google client ID for oauth authentication", required=True)
+    parser.add_argument("--client_id", help="Google client ID for oauth authentication")
 
     options = parser.parse_args()
 
