@@ -37,6 +37,7 @@ export class BaseAPI {
 
 export interface ModelError {
     "error": string;
+    "error_num": string;
 }
 
 export interface NewRoute {
@@ -47,6 +48,12 @@ export interface NewRoute {
 export interface PatchRoute {
     "name"?: string;
     "destination"?: string;
+}
+
+export interface RouteStatistics {
+    "num_successes": number;
+    "num_failures": number;
+    "last_failures": Array<any>;
 }
 
 export interface Routes extends Array<Route> {
@@ -170,6 +177,30 @@ export const DefaultApiFetchParamCreator = {
             throw new Error("Missing required parameter uuid when calling getRoute");
         }
         const baseUrl = `/routes/{uuid}`
+            .replace(`{${"uuid"}}`, `${ params["uuid"] }`);
+        let urlObj = url.parse(baseUrl, true);
+        let fetchOptions: RequestInit = Object.assign({}, { method: "GET" }, options);
+
+        let contentTypeHeader: Dictionary<string> = {};
+        if (contentTypeHeader) {
+            fetchOptions.headers = Object.assign({}, contentTypeHeader, fetchOptions.headers);
+        }
+        return {
+            url: url.format(urlObj),
+            options: fetchOptions,
+        };
+    },
+    /**
+     * 
+     * @summary Gets the statistics for a given token
+     * @param uuid The uuid of the route
+     */
+    getRouteStatistics(params: {  "uuid": string; }, options?: any): FetchArgs {
+        // verify required parameter "uuid" is set
+        if (params["uuid"] == null) {
+            throw new Error("Missing required parameter uuid when calling getRouteStatistics");
+        }
+        const baseUrl = `/routes/{uuid}/statistics`
             .replace(`{${"uuid"}}`, `${ params["uuid"] }`);
         let urlObj = url.parse(baseUrl, true);
         let fetchOptions: RequestInit = Object.assign({}, { method: "GET" }, options);
@@ -332,6 +363,23 @@ export const DefaultApiFp = {
     },
     /**
      * 
+     * @summary Gets the statistics for a given token
+     * @param uuid The uuid of the route
+     */
+    getRouteStatistics(params: { "uuid": string;  }, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<RouteStatistics> {
+        const fetchArgs = DefaultApiFetchParamCreator.getRouteStatistics(params, options);
+        return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
+            return fetch(basePath + fetchArgs.url, fetchArgs.options).then((response) => {
+                if (response.status >= 200 && response.status < 300) {
+                    return response.json();
+                } else {
+                    throw response;
+                }
+            });
+        };
+    },
+    /**
+     * 
      * @summary Edit the configuration of the given webhook
      * @param uuid The uuid of the route
      * @param newInfo 
@@ -412,6 +460,14 @@ export class DefaultApi extends BaseAPI {
     }
     /**
      * 
+     * @summary Gets the statistics for a given token
+     * @param uuid The uuid of the route
+     */
+    getRouteStatistics(params: {  "uuid": string; }, options?: any) {
+        return DefaultApiFp.getRouteStatistics(params, options)(this.fetch, this.basePath);
+    }
+    /**
+     * 
      * @summary Edit the configuration of the given webhook
      * @param uuid The uuid of the route
      * @param newInfo 
@@ -472,6 +528,14 @@ export const DefaultApiFactory = function (fetch?: FetchAPI, basePath?: string) 
          */
         getRoute(params: {  "uuid": string; }, options?: any) {
             return DefaultApiFp.getRoute(params, options)(fetch, basePath);
+        },
+        /**
+         * 
+         * @summary Gets the statistics for a given token
+         * @param uuid The uuid of the route
+         */
+        getRouteStatistics(params: {  "uuid": string; }, options?: any) {
+            return DefaultApiFp.getRouteStatistics(params, options)(fetch, basePath);
         },
         /**
          * 

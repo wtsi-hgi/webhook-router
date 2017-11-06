@@ -54,6 +54,27 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/Error"
+  /routes/{uuid}/statistics:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        description: The uuid of the route
+        type: string
+    get:
+      summary: Gets the statistics for a given token
+      operationId: get_route_statistics
+      security: 
+        - googleToken: []
+      responses:
+        '200':
+          description: Statistics for a given token
+          schema:
+            $ref: "#/definitions/RouteStatistics"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
   /routes/token/{token}:
     parameters:
       - name: token
@@ -144,6 +165,20 @@ definitions:
         type: string
       destination:
         type: string
+  RouteStatistics:
+    required:
+      - num_successes
+      - num_failures
+      - last_failures
+    properties:
+      num_successes:
+        type: integer
+      num_failures:
+        type: integer
+      last_failures:
+        type: array
+        items:
+          type: object
   Route:
     allOf:
       - $ref: "#/definitions/NewRoute"

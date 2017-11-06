@@ -12,8 +12,9 @@ import connexion
 import flask
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist
+from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, BooleanField
 from flask_cors import CORS
+from elasticsearch import Elasticsearch
 
 LOGGING_CONFIG = "(asctime) (message) (levelname)"
 
@@ -53,6 +54,7 @@ class AbstractBaseRoute(Model):
     owner = CharField()
     name = CharField()
     destination = CharField()
+    no_ssl_verification = BooleanField()
     token = CharField()
 
 def get_route_model(db: Database):
@@ -69,7 +71,7 @@ def get_route_json(route: AbstractBaseRoute):
     """
     Gets the json respresentation of given route, for returning to the user
     """
-    public_fields = ["uuid", "owner", "name", "destination", "token"] # i.e. not id
+    public_fields = ["uuid", "owner", "name", "destination", "token", "no_ssl_verification"] # i.e. not id
     new_ob = {}
 
     for field in public_fields:
@@ -175,10 +177,9 @@ class RouterDataMapper:
             return routes[0]
 
     def get_all(self, user: str):
-        aslknlk
         return self._Route.select().where(self._Route.owner == user)
 
-    def add(self, owner: str, destination: str, name: str):
+    def add(self, owner: str, destination: str, name: str, no_ssl_verification: boolean):
         route = self._Route(
             owner=owner,
             destination=destination,
@@ -286,20 +287,23 @@ class Server:
 
         return name_stub
 
-    def _set_error_handler(self, error_class: Type[Exception], error_message: str, error_code: int):
+    def _set_error_handler(self, error_class: Type[Exception], error_num: int, error_message: str, error_code: int):
         """
         For a given Error class, sets response that would be returned
         """
         def handler(error):
-            return flask.make_response(flask.jsonify({'error': error_message}), error_code)
+            return flask.make_response(flask.jsonify({
+                "error": error_message,
+                "error_num": error_num
+            }), error_code)
         self.app.add_error_handler(error_class, handler)
 
     def _set_error_handlers(self):
-        self._set_error_handler(InvalidRouteUUIDError, "Invalid route UUID", StatusCodes.NOT_FOUND)
-        self._set_error_handler(InvalidRouteTokenError, "Invalid route token", StatusCodes.NOT_FOUND)
-        self._set_error_handler(NotAuthorisedError, "Not Authorised", StatusCodes.FORBIDDEN)
-        self._set_error_handler(InvalidURLError, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
-        self._set_error_handler(InvalidCredentialsError, "Invalid credentials", StatusCodes.BAD_REQUEST)
+        self._set_error_handler(InvalidRouteUUIDError, 1, "Invalid route UUID", StatusCodes.NOT_FOUND)
+        self._set_error_handler(InvalidRouteTokenError, 2, "Invalid route token", StatusCodes.NOT_FOUND)
+        self._set_error_handler(NotAuthorisedError, 3, "Not Authorised", StatusCodes.FORBIDDEN)
+        self._set_error_handler(InvalidURLError, 4, "Invalid URL in destination", StatusCodes.BAD_REQUEST)
+        self._set_error_handler(InvalidCredentialsError, 5, "Invalid credentials", StatusCodes.BAD_REQUEST)
 
     def close(self):
         self._db.close()
@@ -350,7 +354,8 @@ class Server:
         route = self._data_mapper.add(
             owner=user,
             destination=destination,
-            name=new_route["name"])
+            name=new_route["name"],
+            no_ssl_verification=new_route["no_ssl_verification"])
 
         return get_route_json(route), StatusCodes.CREATED
 
@@ -359,6 +364,49 @@ class Server:
 
         return self._data_mapper.regenerate_token(uuid)
 
+    def get_route_statistics(self, uuid: str):
+        self._auth()
+
+        # make sure the uuid is actually valid
+        self._data_mapper.get(uuid)
+
+        return get_route_stats(uuid)
+
+
+def get_route_stats(uuid: str):
+    es = Elasticsearch("http://elastic:changeme@elasticsearch:9200")
+
+    def get_query_object(query):
+        return {
+            "query": {
+                "query_string": {
+                    "query": query
+                }
+            }
+        }
+    
+    def es_query(es_query_func, query_success):
+        """Helper function for elasticsearch queries"""
+        return es_query_func(
+            index="whr_routing_server",
+            body=get_query_object(f'uuid:{uuid} AND success:{"true" if query_success else "false"}')
+        )
+
+    def extract_log(log):
+        """Extract the correct output information from a log in elasticsearch"""
+        return log["_source"]
+
+    num_successes = es_query(es.count, True)["count"]
+    num_failures = es_query(es.count, False)["count"]
+    # NOTE: this function only returns the 10 most recent searches
+    # see https://elasticsearch-py.readthedocs.io/en/master/api.html#elasticsearch.Elasticsearch.search
+    last_failures = list(map(extract_log, es_query(es.search, False)["hits"]["hits"]))
+
+    return {
+        "num_successes": num_successes,
+        "num_failures": num_failures,
+        "last_failures": last_failures
+    }
 
 def main(debug: bool, port: int, host: str, client_id: str=None):
     if not debug and not client_id:

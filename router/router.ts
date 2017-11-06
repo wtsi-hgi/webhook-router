@@ -1,7 +1,7 @@
 import http = require('http');
 import https = require('https');
 import url = require("url");
-import fetch from "node-fetch";
+import axios from "axios";
 import httpProxy = require("http-proxy");
 var route = require("router")();
 import argparse = require("argparse");
@@ -25,17 +25,17 @@ const INVALID_ROUTE_TOKEN_ERROR = 2;
 /** Log code for a successful log in elasticsearch */
 const SUCCESS_LOG_CODE = 1;
 
-var writeBadRequest = (resp: any) => writeError("400 Bad Request", 400, resp);
 var writeNotFound = (resp: any) => writeError("404 Not found", 404, resp);
 var writeMethodNotAllowed = (resp: any) => writeError("405 Method Not Allowed", 405, resp);
 var writeInternalError = (resp: any) => writeError("500 Internal server error", 500, resp);
+var writeBadGateway = (resp: any) => writeError("504 Bad Gateway", 504, resp);
 
 function writeError(message: string, code: number, response: http.ServerResponse){
     response.writeHead(code, {
         "Content-Type": "application/json; charset=utf-8"
     })
 
-    response.end(JSON.stringify({error: message}, undefined, 4)) // Space out the response using 4 spaces
+    response.end(JSON.stringify({error: message}, undefined, 4) + "\n") // Space out the response using 4 spaces
 }
 
 abstract class AbstractRouterError extends Error {
@@ -54,7 +54,7 @@ abstract class AbstractRouterError extends Error {
      * @param extraData Extra data to log
      */
     public logException(extraData = {}){
-        winston.error(this.errorMessage, {
+        logger.error(this.errorMessage, {
             ...this.metadata,
             success: false,
             ...extraData
@@ -64,17 +64,16 @@ abstract class AbstractRouterError extends Error {
 
 class InvalidTokenError extends AbstractRouterError{
     constructor(requestedToken: string){
-        super("Invalid token", {requestedToken});
+        super("Invalid token.", {requestedToken});
     }
 
-    logCode = 2;
     writeHttpResponse = writeNotFound;
 }
 
 /** NOTE: This is to be raised if the uuid is found, but the user tries to push to  */
 class RouteMethodNotAllowed extends AbstractRouterError{
     constructor(uuid: string, attemptedMethod: string){
-        super("Incorrect http method, only POST requests are supported", {uuid, attemptedMethod});
+        super("Incorrect http method, only POST requests are supported.", {uuid, attemptedMethod});
     }
 
     writeHttpResponse = writeMethodNotAllowed;
@@ -82,15 +81,7 @@ class RouteMethodNotAllowed extends AbstractRouterError{
 
 class ConfigServerError extends AbstractRouterError{
     constructor(error: string){
-        super("Config server error", {error})
-    }
-
-    writeHttpResponse = writeInternalError;
-}
-
-class InvalidConfigServerResponseError extends AbstractRouterError{
-    constructor(error: string, serverResponse: string){
-        super("Error parsing config server response", {error, serverResponse})
+        super("Config server error.", {error})
     }
 
     writeHttpResponse = writeInternalError;
@@ -98,10 +89,10 @@ class InvalidConfigServerResponseError extends AbstractRouterError{
 
 class RoutingError extends AbstractRouterError{
     constructor(error: Error & {code: string}, uuid: string){
-        super("Routing error", {message: error.message, code: error.code, uuid});
+        super("Routing error.", {message: error.message, code: error.code, uuid});
     }
 
-    writeHttpResponse = writeBadRequest;
+    writeHttpResponse = writeBadGateway;
 }
 
 export interface Route {
@@ -113,14 +104,7 @@ export interface Route {
 }
 
 async function getRouteFromToken(token: string){
-    var configServerResp = await fetch(`${args.configServer}/routes/token/${token}`);
-
-    try{
-        var configServerJSON = await configServerResp.json();
-    }
-    catch(error){
-        throw new InvalidConfigServerResponseError(error, await configServerResp.text())
-    }
+    var configServerJSON = (await axios.get(`${args.configServer}/routes/token/${token}`)).data
 
     if(typeof configServerJSON.error == "string"){
         if(configServerJSON.error_num == INVALID_ROUTE_TOKEN_ERROR){
@@ -177,12 +161,30 @@ route.all("/:token", (request: http.IncomingMessage & {params: any}, response: h
     (async () => {
         try{
             let route = await getRouteFromToken(token);
-            
+
             if(request.method != "POST"){
                 throw new RouteMethodNotAllowed(route.uuid, request.method || "<METHOD MISSING>");
             }
 
-            await routeRequest(request, response, route);
+            let routePromise = routeRequest(request, response, route);
+            // Warn if the request takes longer than a timeout
+            
+            let timeoutSymbol = Symbol("timeout");
+            
+            if(await Promise.race([
+                await routePromise,
+                (async () => {
+                    await delay(args.warningDelay)
+                    return timeoutSymbol;
+                })()
+            ]) == <any>timeoutSymbol){
+                logger.warn(`Long running request. Request is taking more than ${args.warningDelay / 1000} seconds`, {
+                    uuid: route.uuid,
+                    ...getRequestLogData(request)
+                })
+            }
+            
+            await routePromise;
             
             logger.info("Correctly routed", {
                 uuid: route.uuid,
@@ -194,16 +196,33 @@ route.all("/:token", (request: http.IncomingMessage & {params: any}, response: h
                 error.logException(getRequestLogData(request));
                 error.writeHttpResponse(response);
             }
+            else{
+                handleInternalError(error, request, response);
+            }
         }
     })()
 })
 
+function handleInternalError(error: Error, request: http.IncomingMessage, response: http.ServerResponse){
+    logger.error("Internal error", {
+        error: error.toString(),
+        url: request.url,
+        success: false,
+        ...getRequestLogData(request),
+        stack: error.stack
+    })
+
+    writeInternalError(response);
+}
+
 let parser = new argparse.ArgumentParser({
     description: "Webhook router"
 })
-parser.addArgument(["--port"], {help: "Port to serve the request", required: true})
-parser.addArgument(["--host"], {help: "Host to serve the request from", defaultValue: "127.0.0.1"})
-parser.addArgument(["--configServer"], {help: "Ip Address of the config server", required: true})
+parser.addArgument(["--port"], {help: "Port to serve the request", required: true});
+parser.addArgument(["--host"], {help: "Host to serve the request from", defaultValue: "127.0.0.1"});
+parser.addArgument(["--warningDelay"], {help: "How many milliseconds before a long request warning is issued",
+    defaultValue: 10000, type: "int"});
+parser.addArgument(["--configServer"], {help: "Ip Address of the config server", required: true});
 let args = parser.parseArgs();
 
 
@@ -219,14 +238,7 @@ http.createServer((request, response) => {
             writeNotFound(response)
         }
         else{
-            logger.error("Internal error", {
-                error: error.toString(),
-                url: request.url,
-                success: false,
-                ...getRequestLogData(request)
-            })
-
-            writeInternalError(response);
+            handleInternalError(error, request, response);            
         }
     })
 }).listen(args.port, args.host);

@@ -86,3 +86,8 @@ def test_regenerate(router_app: FlaskClient, test_route_uuid: str):
 
     assert resp.status_code == 200
     assert json.loads(resp.data)["token"] != prev_token
+
+def test_stats(router_app: FlaskClient, test_route_uuid: str):
+    pass
+    # TODO get elasticsearch running on test
+    # assert router_app.get(f"/routes/{test_route_uuid}/statistics", **auth).status_code == 200

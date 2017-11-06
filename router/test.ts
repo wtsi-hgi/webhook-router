@@ -1,7 +1,7 @@
 import cp = require("child_process");
 import http = require("http")
 import os = require("os");
-import fetch from "node-fetch";
+import axios from "axios";
 
 var configServer: cp.ChildProcess;
 var routerServer: cp.ChildProcess;
@@ -23,8 +23,7 @@ beforeAll(async () => {
 }, 5500)
 
 async function addRoute(dest: string){
-    let addRouteResp = await fetch(`http://127.0.0.1:${configPort}/add-route`, {
-        method: "POST",
+    let addRouteResp = await axios.post(`http://127.0.0.1:${configPort}/add-route`, {
         body: JSON.stringify({
             name: "route",
             destination: dest
@@ -34,8 +33,8 @@ async function addRoute(dest: string){
         }
     })
 
-    let token: string = (await addRouteResp.json()).token;
-    expect(token).not.toBeUndefined;
+    let token: string = addRouteResp.data.token;
+    expect(addRouteResp.data.token).not.toBeUndefined;
 
     return token;
 }
@@ -43,9 +42,7 @@ async function addRoute(dest: string){
 async function testRoutingToAddress(location: string){
     let token = await addRoute(location);
     
-    return await fetch(`http://127.0.0.1:${routerPort}/${token}`, {
-        method: "POST"
-    })
+    return await axios.post(`http://127.0.0.1:${routerPort}/${token}`)
 }
 
 it("Routes to test server", async () => {
@@ -55,21 +52,21 @@ it("Routes to test server", async () => {
 
     let resp = await testRoutingToAddress(`127.0.0.1:${receiverPort}`)
 
-    expect(await resp.text()).toBe("response");
+    expect(resp.data).toBe("response");
 });
 
 describe("example.com", () => {
     it("routes to http", async () => {
         let resp = await testRoutingToAddress("http://www.example.com")
 
-        expect(await resp.text()).toBeTruthy;
+        expect(resp.data).toBeTruthy;
         expect(resp.status).toEqual(200);
     })
 
     it("routes to https", async () => {
         let resp = await testRoutingToAddress("https://www.example.com")
 
-        expect(await resp.text()).toBeTruthy;
+        expect(resp.data).toBeTruthy;
         expect(resp.status).toEqual(200);
     })
 })

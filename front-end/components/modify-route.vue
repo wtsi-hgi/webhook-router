@@ -1,7 +1,7 @@
 <template>
 <div>
 <whr-navbar>
-    <span class="divider">&nbsp; </span>
+    <span class="divider" innerHTML="&nbsp;"></span>
     <router-link to="/">
         <button type="button" class="btn btn-outline-secondary">
             <span class="oi oi-chevron-left"></span> Back
@@ -22,7 +22,8 @@
                 id="deleteButton" style="margin-left: 10px; ">Delete Route</button>
         </h2>
         <hr>
-        <div style="padding-left: 10px">
+        <div class="form-section">
+            <h4>Configuration</h4>
             <form @submit.prevent="postForm">
                 <p>
                     <label for="route-name">Name:</label>
@@ -34,24 +35,34 @@
                     <input type="url" class="form-control" placeholder="Route Destination"
                         id="route-destination" required v-model="destination">
                 </p>
+                <label for="check-certificates">Don't verify certificates</label>
+                <input type="checkbox" id="check-certificates" class="form-control-inline">
+                <br />
                 <button type="submit" class="btn btn-outline-success" :disabled="!modified">Save Changes</button>
             </form>
             <hr>
-            <div style="padding-left: 10px">
-                <label for="route-destination">Token:</label>
-                <code>{{token}}</code>
-                <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
-                    Regenerate Token</button>
-                <br />
-                <label for="route-destination">UUID:</label>
-                <code>{{uuid}}</code>
-            </div>
+            <h4>Configuration</h4>
+            <label for="route-destination">Token:</label>
+            <code>{{token}}</code>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
+                Regenerate Token</button>
+            <br />
+            <label for="route-destination">UUID:</label>
+            <code>{{uuid}}</code>
             <hr>
-            <div style="padding-left: 10px">
-                Route location: 
-                <code>
-                    {{routingServer}}/{{token}}
-                </code>
+            Route location: 
+            <code>
+                {{routingServer}}/{{token}}
+            </code>
+            <hr>
+                <div v-show="errorStr != ''">
+                    <h4>Statistics:</h4>
+                    {{numSuccesses}} webhook{{numSuccesses == 1?"":"s"}} correctly routed. {{numFailures}} error{{numFailures == 1?"":"s"}}.
+                    <br />
+                    <br />
+                    <h5>Errors:</h5>
+                    <pre><code>{{errorStr}}</code></pre>
+                </div>
             </div>
         </div>
     </div>
@@ -101,8 +112,8 @@
 </div>
 </template>
 <style scoped>
-input{
-    margin-left: 10px;
+.form-section{
+    padding-left: 10px
 }
 </style>
 
@@ -140,6 +151,9 @@ export default class extends Vue {
         deleteModal: HTMLElement;
         regenerateModal: HTMLElement;
     }
+    numSuccesses = 0;
+    numFailures = 0;
+    errorStr = "";
 
     currData = {
         name: "",
@@ -194,11 +208,28 @@ export default class extends Vue {
         this.token = resp.token;
     }
 
+    formatError(error: any){
+        let excludeProps = new Set([
+            "message",
+            "level",
+            "@timestamp",
+            "uuid"
+        ]);
+
+        let propertyStr = Object.entries(error).filter(x => !excludeProps.has(x[0])).map(propPair => "\t" + propPair[0] + "=" + propPair[1])
+
+        return `[${error.level} ${error["@timestamp"]}] ${error.message} \n${propertyStr.join("\n")}`
+    }
+
     async mounted() {
         try{
             var route = await this.api.getRoute({
                 uuid: this.uuid
-            }, this.authOptions)
+            }, this.authOptions);
+
+            var stats = await this.api.getRouteStatistics({
+                uuid: this.uuid
+            }, this.authOptions);
         }
         catch(e){
             if(e instanceof Response){
@@ -220,7 +251,11 @@ export default class extends Vue {
             destination: route.destination
         }
 
-        this.loaded = true
+        this.numSuccesses = stats.num_successes;
+        this.numFailures = stats.num_failures;
+        this.errorStr = stats.last_failures.map(x => this.formatError(x)).join("\n");
+
+        this.loaded = true;
     }
 }
 </script>

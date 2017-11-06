@@ -10,12 +10,14 @@ services:
     - "5601:5601"
   configserver:
     build: config
+    ports:
+    - "8081:8080"
     depends_on:
     - "elasticsearch"
   router:
     build: router
     ports:
-     - "8081:8081"
+     - "8082:8080"
     depends_on:
     - "elasticsearch"
     - "configserver"
