@@ -1,4 +1,4 @@
 cd router
 npm test
-cd ../config
+cd ../config-server
 pytest test.py

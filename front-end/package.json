@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "gen-api": "swagger-codegen generate -i ../config/swagger.yaml -l typescript-fetch -o . --additional-properties supportsES6=True --additional-properties modelPropertyNaming=original",
+    "gen-api": "swagger-codegen generate -i ../config-server/swagger.yaml -l typescript-fetch -o src --additional-properties supportsES6=True --additional-properties modelPropertyNaming=original",
     "build": "NODE_ENV='production' webpack"
   },
   "author": "Thomas Hickman",
