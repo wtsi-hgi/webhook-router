@@ -10,6 +10,7 @@
 </div>
 </template>
 <script lang="ts">
+/// <reference types="gapi.auth2" />
 import Vue from "vue";
 import Component from 'vue-class-component';
 import NavBarComponent from "./whr-navbar.vue";

@@ -28,7 +28,7 @@ const SUCCESS_LOG_CODE = 1;
 var writeNotFound = (resp: any) => writeError("404 Not found", 404, resp);
 var writeMethodNotAllowed = (resp: any) => writeError("405 Method Not Allowed", 405, resp);
 var writeInternalError = (resp: any) => writeError("500 Internal server error", 500, resp);
-var writeBadGateway = (resp: any) => writeError("504 Bad Gateway", 504, resp);
+var writeBadGateway = (resp: any) => writeError("502 Bad Gateway", 502, resp);
 
 function writeError(message: string, code: number, response: http.ServerResponse){
     response.writeHead(code, {
@@ -101,6 +101,7 @@ export interface Route {
     "token": string;
     "uuid": string;
     "owner": string;
+    "no_ssl_verification": boolean;
 }
 
 async function getRouteFromToken(token: string){
@@ -130,7 +131,8 @@ function routeRequest(request: http.IncomingMessage, response: http.ServerRespon
         (<any>request).resolvePromise = resolve;
 
         proxy.web(request, response, {
-            target: route.destination
+            target: route.destination,
+            secure: !route.no_ssl_verification
         }, (error: Error & {code: string}) => {
             reject(new RoutingError(error, route.uuid));
         });

@@ -1,13 +1,16 @@
 <template>
 <div>
     <whr-navbar>
-        <span class="divider">&nbsp; </span>
+        <span class="divider">&nbsp;</span>
         <router-link to="add-route">
-            <button type="button" class="btn btn-outline-primary"><span class="oi oi-plus"></span> New Route</button>
+            <button type="button" class="btn btn-outline-primary"><span class="oi oi-file"></span> Create Route</button>
+        </router-link>
+        <router-link style="margin-left: 5px" to="add-route">
+            <button type="button" class="btn btn-outline-secondary"><span class="oi oi-plus"></span> Add Existing Route</button>
         </router-link>
         <span class="mr-auto"></span><!--Move the other elements to the left-->
         <!--<input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search" aria-label="Search">
-        <span class="divider">&nbsp; </span>-->
+        <span class="divider" innerHTML="&nbsp;"></span>-->
         <slot name="logoutButton"></slot>
     </whr-navbar>
     <slot name="errors"></slot>

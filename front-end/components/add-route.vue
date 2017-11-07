@@ -1,7 +1,7 @@
 <template>
 <div>
 <whr-navbar>
-    <span class="divider">&nbsp; </span>
+    <span class="divider" innerHTML="&nbsp;"></span>
     <router-link to="/">
         <button type="button" class="btn btn-outline-secondary">
             <span class="oi oi-chevron-left"></span> Back
@@ -26,6 +26,9 @@
             <label for="route-destination">Destination:</label>
             <input type="url" class="form-control" placeholder="Route Destination"
                 id="route-destination" v-model="destination" required>
+            <br />
+            <label for="check-certificates">Don't verify certificates</label>
+            <input type="checkbox" id="check-certificates" class="form-control-inline" v-model="no_ssl_verification">
             <br/>
             <br />
             <button type="submit" class="btn btn-outline-success">Create Route</button>
@@ -60,7 +63,8 @@ import * as utils from "../utils";
 export default class extends Vue {
     errorText = ""
     name = ""
-    destination = ""
+    destination = "";
+    no_ssl_verification = false;
     googleToken: string;
     readonly authOptions = utils.getAuthOptions(this.googleToken);
 
@@ -70,7 +74,8 @@ export default class extends Vue {
         await this.api.addRoute({
             newRoute: {
                 destination: this.destination,
-                name: this.name
+                name: this.name,
+                no_ssl_verification: this.no_ssl_verification
             }
         }, this.authOptions)
 

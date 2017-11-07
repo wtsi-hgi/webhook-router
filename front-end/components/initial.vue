@@ -12,7 +12,8 @@
 </div>
 </template>
 <script lang="ts">
-
+/// <reference types="gapi.auth2" />
+/// <reference types="../untyped_modules" />
 import Vue from "vue";
 import VueRouter from "vue-router";
 import DisplayRoutesComponent from "./display-routes.vue";
@@ -27,6 +28,10 @@ import * as swaggerAPI from "../api";
 import * as utils from "../utils";
 import {configServer} from "../config"
 var Mprogress = require("mprogress/mprogress.min.js"); // Do this, as the main module is not exported
+import {auto} from 'browser-unhandled-rejection';
+
+// pollyfill the event unhandledrejection
+auto();
 
 const router = new VueRouter({
     mode: "hash",
@@ -35,7 +40,7 @@ const router = new VueRouter({
         {path: "/", component: DisplayRoutesComponent, name: "home"},
         {path: "/add-route", component: AddRouteComponent, name: "add-route"},
         {path: "/routes/:uuid", component: ModifyRoute, props: true, name: "modify-route"},
-        {path: "*", component: NotFoundComponent, name: "home"}
+        {path: "*", component: NotFoundComponent}
     ]
 })
 
@@ -55,15 +60,20 @@ const router = new VueRouter({
 export default class extends Vue {
     signedin = false
     state = "start"
-    googleToken = ""
-    auth: any;
-
+    private googleToken = ""
+    auth: gapi.auth2.GoogleAuth;
     api = new swaggerAPI.DefaultApi(this.fetchWrapper.bind(this), configServer);
-
+    tokenExpiration: number;
     progressBar = new Mprogress({
         template: 3, // 3 = indeterminate progress bar
         parent: 'body'
     });
+
+    /**
+     * Padding time for a reload of a token.
+     * Half of this value will also be when the brower checks for the token being refreshed
+     */
+    readonly reloadPadding = 10 * 60 * 1000; // 10 mins
 
     $refs: {
         errors: ErrorsComponent;
@@ -75,12 +85,17 @@ export default class extends Vue {
         try{
             return await fetch(input, init);
         }
-        catch(e){
-            this.$refs.errors.addError(e);
-            throw e;
-        }
         finally{
             this.progressBar.end();
+        }
+    }
+
+    async tryReloadToken(){
+        if(this.tokenExpiration - this.reloadPadding < Date.now()){
+            let newAuthResp = await this.auth.currentUser.get().reloadAuthResponse();
+
+            this.googleToken = newAuthResp.id_token;
+            this.tokenExpiration = newAuthResp.expires_at;
         }
     }
 
@@ -96,6 +111,11 @@ export default class extends Vue {
     }
     
     mounted() {
+        window.addEventListener("unhandledrejection", (e) => {
+            console.error(e);
+            this.$refs.errors.addError((<any>e).reason);
+        })
+
         gapi.load('auth2', () => {
             gapi.auth2.init({
                 client_id: '859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com',
@@ -105,7 +125,17 @@ export default class extends Vue {
             }).then(auth => {
                 this.auth = auth;
                 if(this.auth.isSignedIn.get()){
-                    this.login(this.auth.currentUser.get().getAuthResponse().id_token)
+                    let authResponse = this.auth.currentUser.get().getAuthResponse();
+                    this.tokenExpiration = authResponse.expires_at;
+
+                    this.login(authResponse.id_token);
+
+                    // Reload the token when it expires
+                    // I cannot just use setInterval on the expiration date, as
+                    // javascript timers stop running when the computer is sleeping 
+
+                    setInterval(() => this.tryReloadToken(), this.reloadPadding / 2);
+                    window.addEventListener("focus", () => this.tryReloadToken());
                 }
                 else{
                     this.state = "not_signed_in"

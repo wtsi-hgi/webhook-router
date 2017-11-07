@@ -12,11 +12,11 @@
 </whr-navbar>
 <div id="base" class="container">
     <br />
-    <slot name="errors" ref="errors"></slot>
+    <slot name="errors"></slot>
     <div v-show="loaded">
         <h2>
             <span>
-                Route: "{{currData.name}}"
+                Route: "{{savedData.name}}"
             </span>
             <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm"
                 id="deleteButton" style="margin-left: 10px; ">Delete Route</button>
@@ -24,45 +24,53 @@
         <hr>
         <div class="form-section">
             <h4>Configuration</h4>
-            <form @submit.prevent="postForm">
-                <p>
-                    <label for="route-name">Name:</label>
-                    <input type="text" required class="form-control" placeholder="Route Name" 
-                        id="route-name" required v-model="name">
-                </p>
-                <p>
-                    <label for="route-destination">Destination:</label>
-                    <input type="url" class="form-control" placeholder="Route Destination"
-                        id="route-destination" required v-model="destination">
-                </p>
-                <label for="check-certificates">Don't verify certificates</label>
-                <input type="checkbox" id="check-certificates" class="form-control-inline">
+            <hr>
+            <div class="form-section">
+                <form @submit.prevent="postForm">
+                    <p>
+                        <label for="route-name">Name:</label>
+                        <input type="text" required class="form-control" placeholder="Route Name" 
+                            id="route-name" required v-model="formData.name">
+                    </p>
+                    <p>
+                        <label for="route-destination">Destination:</label>
+                        <input type="url" class="form-control" placeholder="Route Destination"
+                            id="route-destination" required v-model="formData.destination">
+                    </p>
+                    <label for="check-certificates">Don't verify certificates</label>
+                    <input type="checkbox" id="check-certificates" class="form-control-inline" v-model="formData.no_ssl_verification">
+                    <br />
+                    <button type="submit" class="btn btn-outline-success" :disabled="!modified">Save Changes</button>
+                </form>
+            </div>
+            <h4>References</h4>
+            <hr>
+            <div class="form-section">
+                <label for="route-destination">Token:</label>
+                <code>{{token}}</code>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
+                    Regenerate Token</button>
                 <br />
-                <button type="submit" class="btn btn-outline-success" :disabled="!modified">Save Changes</button>
-            </form>
-            <hr>
-            <h4>Configuration</h4>
-            <label for="route-destination">Token:</label>
-            <code>{{token}}</code>
-            <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
-                Regenerate Token</button>
+                <label for="route-destination">UUID:</label>
+                <code>{{uuid}}</code>
+                <hr>
+                Route location: 
+                <code>
+                    {{routingServerLocation}}/{{token}}
+                </code>
+            </div>
             <br />
-            <label for="route-destination">UUID:</label>
-            <code>{{uuid}}</code>
+            <h4>Statistics</h4>
             <hr>
-            Route location: 
-            <code>
-                {{routingServer}}/{{token}}
-            </code>
-            <hr>
-                <div v-show="errorStr != ''">
-                    <h4>Statistics:</h4>
-                    {{numSuccesses}} webhook{{numSuccesses == 1?"":"s"}} correctly routed. {{numFailures}} error{{numFailures == 1?"":"s"}}.
+            <div class="form-section">
+                {{numSuccesses}} webhook{{numSuccesses == 1?"":"s"}} correctly routed. {{numFailures}} error{{numFailures == 1?"":"s"}}.
+                <div v-show="errorLogs != ''">
                     <br />
                     <br />
                     <h5>Errors:</h5>
-                    <pre><code>{{errorStr}}</code></pre>
+                    <pre><code>{{errorLogs}}</code></pre>
                 </div>
+            </div>
             </div>
         </div>
     </div>
@@ -77,7 +85,7 @@
               </button>
             </div>
             <div class="modal-body">
-                Are you sure you want to delete "{{currData.name}}"?
+                Are you sure you want to delete "{{savedData.name}}"?
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -97,7 +105,7 @@
               </button>
             </div>
             <div class="modal-body">
-                Are you sure you want to regenerate the token of "{{currData.name}}"?
+                Are you sure you want to regenerate the token of "{{savedData.name}}"?
                 <br />
                 <small>Regenerating tokens will break all links to this route.</small>
             </div>
@@ -126,6 +134,7 @@ import {configServer, routingServer} from "../config"
 import NavBarComponent from "./whr-navbar.vue";
 import ErrorsComponent from "./errors.vue";
 import * as utils from "../utils";
+import {isEqual, cloneDeep} from "lodash";
 
 @Component({
     props: {
@@ -139,50 +148,58 @@ import * as utils from "../utils";
     }
 })
 export default class extends Vue {
-    uuid: string
-    errorText = ""
-    name = ""
-    destination = ""
-    token = ""
-    loaded = false
-    routingServer = routingServer
+    /**
+     * Props passed to the object
+     */
+    uuid: string;
+    api: swaggerAPI.DefaultApi;
+    googleToken: string;
+
+    token = "";
+    loaded = false;
+    routingServerLocation = routingServer;
     $refs: {
-        errors: ErrorsComponent;
         deleteModal: HTMLElement;
         regenerateModal: HTMLElement;
     }
+
+    /**
+     * State for statistics
+     */
     numSuccesses = 0;
     numFailures = 0;
-    errorStr = "";
+    errorLogs = "";
 
-    currData = {
+    /**
+     * Model for the form for modification of routes
+     */
+    formData = {
         name: "",
-        destination: ""
+        destination: "",
+        no_ssl_verification: false
     }
 
-    googleToken: string;
+    /**
+     * Data structure containing the data that is currently stored, for
+     * computing when the form is modified
+     */
+    savedData = {
+        ...this.formData
+    };
+
     readonly authOptions = utils.getAuthOptions(this.googleToken);
 
     get modified () {
-        return this.loaded && !(this.currData.name == this.name 
-                  && this.currData.destination == this.destination)
+        return this.loaded && !isEqual(this.formData, this.savedData)
     }
-
-    api: swaggerAPI.DefaultApi;
 
     async postForm(){
         let patchResult = await this.api.patchRoute({
             uuid: this.uuid,
-            newInfo: {
-                name: this.name,
-                destination: this.destination
-            }
-        }, this.authOptions)
+            newInfo: this.formData
+        }, this.authOptions);
 
-        this.currData = {
-            name: this.name,
-            destination: this.destination
-        }
+        this.savedData = cloneDeep(this.formData);
     }
 
     async deleteRoute() {
@@ -216,21 +233,32 @@ export default class extends Vue {
             "uuid"
         ]);
 
-        let propertyStr = Object.entries(error).filter(x => !excludeProps.has(x[0])).map(propPair => "\t" + propPair[0] + "=" + propPair[1])
+        let propertyStr = Object.entries(error)
+            .filter(x => !excludeProps.has(x[0]))
+            .map(propPair => `\t${propPair[0]}=${propPair[1]}`)
 
         return `[${error.level} ${error["@timestamp"]}] ${error.message} \n${propertyStr.join("\n")}`
     }
 
+    async displayErrors(){
+        var stats = await this.api.getRouteStatistics({
+            uuid: this.uuid
+        }, this.authOptions);
+
+        this.numSuccesses = stats.num_successes;
+        this.numFailures = stats.num_failures;
+        this.errorLogs = stats.last_failures.map(x => this.formatError(x)).join("\n");
+    }
+
     async mounted() {
         try{
-            var route = await this.api.getRoute({
-                uuid: this.uuid
-            }, this.authOptions);
-
-            var stats = await this.api.getRouteStatistics({
-                uuid: this.uuid
-            }, this.authOptions);
+            await this.displayErrors();
         }
+        catch{}
+        var route = await this.api.getRoute({
+            uuid: this.uuid
+        }, this.authOptions);
+        /*
         catch(e){
             if(e instanceof Response){
                 this.$refs.errors.addErrorText((await e.json()).error, true);
@@ -238,22 +266,14 @@ export default class extends Vue {
             }
 
             throw e;
-        }
+        }*/
 
         Object.keys(route).forEach(key => {
             (<any>this)[key] = (<any>route)[key];
         })
 
-        this.currData.name = route.name;
-
-        this.currData = {
-            name: route.name,
-            destination: route.destination
-        }
-
-        this.numSuccesses = stats.num_successes;
-        this.numFailures = stats.num_failures;
-        this.errorStr = stats.last_failures.map(x => this.formatError(x)).join("\n");
+        this.formData = route;
+        this.savedData = cloneDeep(this.formData);
 
         this.loaded = true;
     }

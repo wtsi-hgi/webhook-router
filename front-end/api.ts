@@ -43,11 +43,13 @@ export interface ModelError {
 export interface NewRoute {
     "name": string;
     "destination": string;
+    "no_ssl_verification"?: boolean;
 }
 
 export interface PatchRoute {
     "name"?: string;
     "destination"?: string;
+    "no_ssl_verification"?: boolean;
 }
 
 export interface RouteStatistics {
@@ -62,6 +64,7 @@ export interface Routes extends Array<Route> {
 export interface Route {
     "name": string;
     "destination": string;
+    "no_ssl_verification": boolean;
     "token": string;
     "uuid": string;
     "owner": string;

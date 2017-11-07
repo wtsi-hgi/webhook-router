@@ -1,7 +1,8 @@
 import cp = require("child_process");
-import http = require("http")
+import http = require("http");
+import https = require("https");
 import os = require("os");
-import axios from "axios";
+import axios, {AxiosError} from "axios";
 
 var configServer: cp.ChildProcess;
 var routerServer: cp.ChildProcess;
@@ -22,15 +23,11 @@ beforeAll(async () => {
     await delay(5000);
 }, 5500)
 
-async function addRoute(dest: string){
+async function addRoute(dest: string, options = {}){
     let addRouteResp = await axios.post(`http://127.0.0.1:${configPort}/add-route`, {
-        body: JSON.stringify({
-            name: "route",
-            destination: dest
-        }),
-        headers: {
-            "Content-Type": "application/json"
-        }
+        name: "route",
+        destination: dest,
+        ...options
     })
 
     let token: string = addRouteResp.data.token;
@@ -39,32 +36,62 @@ async function addRoute(dest: string){
     return token;
 }
 
-async function testRoutingToAddress(location: string){
-    let token = await addRoute(location);
+async function testRoutingToAddress(location: string, options = {}){
+    let token = await addRoute(location, options);
     
     return await axios.post(`http://127.0.0.1:${routerPort}/${token}`)
 }
 
 it("Routes to test server", async () => {
-    http.createServer((req, res) => {
+    let server = http.createServer((req, res) => {
         res.end("response");
     }).listen(receiverPort, "127.0.0.1");
 
-    let resp = await testRoutingToAddress(`127.0.0.1:${receiverPort}`)
+    let resp = await testRoutingToAddress(`http://127.0.0.1:${receiverPort}`)
 
     expect(resp.data).toBe("response");
-});
 
-describe("example.com", () => {
+    server.close()
+})
+
+describe("no_ssl_verification", () => {
+    it("= false fails with insecure site", async () => {
+        let error: undefined | AxiosError;
+        
+        try{
+            await testRoutingToAddress(`https://self-signed.badssl.com/`)
+        }
+        catch(e){
+            error = e;
+        }
+    
+        expect(error).not.toBeUndefined;
+        expect(error!.response!.status).toBe(502);
+    })
+    
+    it("= true succeeds with insecure site", async () => {
+        try{
+            await testRoutingToAddress(`https://self-signed.badssl.com/`, {
+                no_ssl_verification: true
+            })
+        }
+        catch(error){
+            expect(error.response.status).not.toBe(502);
+        }
+    })
+})
+
+
+describe("httpbin", () => {
     it("routes to http", async () => {
-        let resp = await testRoutingToAddress("http://www.example.com")
-
+        let resp = await testRoutingToAddress("http://httpbin.org/post")
+        
         expect(resp.data).toBeTruthy;
         expect(resp.status).toEqual(200);
     })
 
     it("routes to https", async () => {
-        let resp = await testRoutingToAddress("https://www.example.com")
+        let resp = await testRoutingToAddress("https://httpbin.org/post")
 
         expect(resp.data).toBeTruthy;
         expect(resp.status).toEqual(200);

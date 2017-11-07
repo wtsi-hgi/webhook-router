@@ -159,12 +159,17 @@ definitions:
         type: string
       destination:
         type: string
+      no_ssl_verification:
+        type: boolean
+        default: false
   PatchRoute:
     properties:
       name:
         type: string
       destination:
         type: string
+      no_ssl_verification:
+        type: boolean
   RouteStatistics:
     required:
       - num_successes
@@ -181,18 +186,21 @@ definitions:
           type: object
   Route:
     allOf:
-      - $ref: "#/definitions/NewRoute"
       - required:
+          - no_ssl_verification
           - token
           - owner
           - uuid
         properties:
+          no_ssl_verification:
+            type: boolean
           token:
             type: string
           uuid:
             type: string
           owner:
             type: string
+      - $ref: "#/definitions/NewRoute"
   Routes:
     type: array
     items:
@@ -200,8 +208,11 @@ definitions:
   Error:
     required:
       - error
+      - error_num
     properties:
       error:
+        type: string
+      error_num:
         type: string
 securityDefinitions:
   googleToken:

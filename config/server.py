@@ -179,11 +179,12 @@ class RouterDataMapper:
     def get_all(self, user: str):
         return self._Route.select().where(self._Route.owner == user)
 
-    def add(self, owner: str, destination: str, name: str, no_ssl_verification: boolean):
+    def add(self, owner: str, destination: str, name: str, no_ssl_verification: bool):
         route = self._Route(
             owner=owner,
             destination=destination,
             name=name,
+            no_ssl_verification=no_ssl_verification,
             uuid=str(uuid.uuid4()),
             token=RouterDataMapper._generate_new_token())
 
@@ -355,7 +356,7 @@ class Server:
             owner=user,
             destination=destination,
             name=new_route["name"],
-            no_ssl_verification=new_route["no_ssl_verification"])
+            no_ssl_verification=new_route.get("no_ssl_verification", False))
 
         return get_route_json(route), StatusCodes.CREATED
 
