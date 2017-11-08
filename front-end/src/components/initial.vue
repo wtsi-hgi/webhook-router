@@ -13,7 +13,6 @@
 </template>
 <script lang="ts">
 /// <reference types="gapi.auth2" />
-/// <reference types="../untyped_modules" />
 import Vue from "vue";
 import VueRouter from "vue-router";
 import DisplayRoutesComponent from "./display-routes.vue";

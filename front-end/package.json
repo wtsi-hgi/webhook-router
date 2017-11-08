@@ -2,7 +2,7 @@
   "name": "router-front-end",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "bundle.js",
   "scripts": {
     "gen-api": "swagger-codegen generate -i ../config-server/swagger.yaml -l typescript-fetch -o src --additional-properties supportsES6=True --additional-properties modelPropertyNaming=original",
     "build": "NODE_ENV='production' webpack"

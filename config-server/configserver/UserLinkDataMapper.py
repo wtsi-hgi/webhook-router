@@ -30,7 +30,7 @@ class UserLinkDataMapper:
         db.create_tables([self._UserLink], True)
 
     def _try_get_link(self, user: str, uuid: str):
-        return self._UserLink.get((self._UserLink.uuid == uuid) & (self._UserLink.user == user))
+        return self._UserLink.get((self._UserLink.route_uuid == uuid) & (self._UserLink.user == user))
 
     def add_user_link(self, user: str, uuid: str):
         try:
@@ -38,7 +38,7 @@ class UserLinkDataMapper:
         except DoesNotExist:
             route = self._UserLink(
                 user=user,
-                uuid=uuid
+                route_uuid=uuid
             )
 
             route.save()

@@ -26,8 +26,8 @@ class ConfigServer:
         self._auth = auth
         self._db.connect()
 
-        route_dm = RouteDataMapper(db)
         user_link_dm = UserLinkDataMapper(db)
+        route_dm = RouteDataMapper(db, user_link_dm)
         self.depatcher = ConnexionDespatcher(
             self._auth,
             route_dm,

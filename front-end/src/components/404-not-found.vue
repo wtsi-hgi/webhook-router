@@ -1,7 +1,7 @@
 <template>
 <div>
 <whr-navbar>
-    <span class="divider" innerHTML="&nbsp;"></span>
+    <span class="divider" v-html="'&nbsp;'"></span>
     <router-link to="/">
         <button type="button" class="btn btn-outline-secondary">
             Home

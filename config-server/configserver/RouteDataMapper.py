@@ -4,6 +4,7 @@ import secrets
 import uuid
 
 from .errors import *
+from .UserLinkDataMapper import UserLinkDataMapper
 from pythonjsonlogger import jsonlogger
 import connexion
 import flask
@@ -44,8 +45,9 @@ class RouteDataMapper:
     Data mapper for the Route type.
     NOTE: This may be called by ConnextionDespatcher, so naming of arguments is important
     """
-    def __init__(self, db: Database):
+    def __init__(self, db: Database, user_link_datamapper: UserLinkDataMapper):
         self._Route = get_route_model(db)
+        self._user_link_datamapper = user_link_datamapper
         db.create_tables([self._Route], True)
 
     def _get_route_from_uuid(self, uuid: str) -> AbstractBaseRoute:
@@ -91,13 +93,17 @@ class RouteDataMapper:
         return [get_route_json(route) for route in routes]
 
     def add(self, owner: str, destination: str, name: str, no_ssl_verification: bool):
+        route_uuid = str(uuid.uuid4())
+
         route = self._Route(
             owner=owner,
             destination=destination,
             name=name,
             no_ssl_verification=no_ssl_verification,
-            uuid=str(uuid.uuid4()),
+            uuid=route_uuid,
             token=RouteDataMapper._generate_new_token())
+
+        # self._user_link_datamapper.add_user_link(owner, route_uuid) TODO this
 
         route.save()
 
