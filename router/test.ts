@@ -16,7 +16,7 @@ function delay(time: number){
 }
 
 beforeAll(async () => {
-    configServer = cp.spawn(`python ../config-server/configserver/server.py --port ${configPort} --host 127.0.0.1 --debug`, 
+    configServer = cp.spawn(`cd ../config-server && python -m configserver --port ${configPort} --host 127.0.0.1 --debug`, 
         [], {shell: true, stdio: "inherit"});
     routerServer = cp.spawn(`node ./router.js --port ${routerPort} --host 127.0.0.1 --configServer http://127.0.0.1:${configPort}`,
         [], {shell: true, stdio: "inherit"});
