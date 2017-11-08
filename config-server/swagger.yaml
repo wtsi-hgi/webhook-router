@@ -222,7 +222,6 @@ definitions:
       - required:
           - no_ssl_verification
           - token
-          - owner
           - uuid
         properties:
           no_ssl_verification:
@@ -230,8 +229,6 @@ definitions:
           token:
             type: string
           uuid:
-            type: string
-          owner:
             type: string
       - $ref: "#/definitions/NewRoute"
   Routes:

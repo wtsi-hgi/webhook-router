@@ -100,7 +100,6 @@ export interface Route {
     "destination": string;
     "token": string;
     "uuid": string;
-    "owner": string;
     "no_ssl_verification": boolean;
 }
 

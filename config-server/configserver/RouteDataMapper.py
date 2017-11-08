@@ -56,18 +56,17 @@ class RouteDataMapper:
         else:
             return get_route_json(routes[0])
 
-    def add(self, owner: str, destination: str, name: str, no_ssl_verification: bool):
+    def add(self, user: str, destination: str, name: str, no_ssl_verification: bool):
         route_uuid = str(uuid.uuid4())
 
         route = Route(
-            owner=owner,
             destination=destination,
             name=name,
             no_ssl_verification=no_ssl_verification,
             uuid=route_uuid,
             token=RouteDataMapper._generate_new_token())
 
-        self._user_link_datamapper.add_user_link(owner, route_uuid)
+        self._user_link_datamapper.add_user_link(user, route_uuid)
 
         route.save()
 

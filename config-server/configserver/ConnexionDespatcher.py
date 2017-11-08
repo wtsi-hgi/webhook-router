@@ -113,7 +113,7 @@ class ConnexionDespatcher:
             destination = new_route["destination"]
 
         route = self._route_data_mapper.add(
-            owner=user,
+            user=user,
             destination=destination,
             name=new_route["name"],
             no_ssl_verification=new_route.get("no_ssl_verification", False))

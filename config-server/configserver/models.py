@@ -5,7 +5,6 @@ proxy_db = Proxy()
 
 class Route(Model):
     uuid = CharField()
-    owner = CharField()
     name = CharField()
     destination = CharField()
     no_ssl_verification = BooleanField()
@@ -18,7 +17,7 @@ def get_route_json(route: Route):
     """
     Gets the json respresentation of given route, for returning to the user
     """
-    public_fields = ["uuid", "owner", "name", "destination", "token", "no_ssl_verification"]
+    public_fields = ["uuid", "name", "destination", "token", "no_ssl_verification"]
     new_ob = {}
 
     for field in public_fields:

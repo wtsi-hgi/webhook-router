@@ -67,7 +67,6 @@ export interface Route {
     "no_ssl_verification": boolean;
     "token": string;
     "uuid": string;
-    "owner": string;
 }
 
 
