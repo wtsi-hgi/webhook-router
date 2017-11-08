@@ -65,7 +65,7 @@ def test_patch(router_app: FlaskClient, test_route_uuid: str):
 
 @pytest.mark.usefixtures("test_route_uuid")
 def test_get_all(router_app: FlaskClient):
-    all_routes_resp = router_app.get("/routes", **auth)
+    all_routes_resp = router_app.get("/routes")
 
     assert all_routes_resp.status_code == 200
 
@@ -74,20 +74,44 @@ def test_get_all(router_app: FlaskClient):
 
 
 def test_delete(router_app: FlaskClient, test_route_uuid: str):
-    assert router_app.delete(f"/routes/{test_route_uuid}", **auth).status_code == 204
+    assert router_app.delete(f"/routes/{test_route_uuid}").status_code == 204
 
-    assert len(json.loads(router_app.get("/routes", **auth).data)) == 0
+    assert len(json.loads(router_app.get("/routes").data)) == 0
 
 
 def test_regenerate(router_app: FlaskClient, test_route_uuid: str):
     prev_token = json.loads(router_app.get(f"/routes/{test_route_uuid}").data)["token"]
 
-    resp = router_app.post(f"/routes/{test_route_uuid}/regenerate", **auth)
+    resp = router_app.post(f"/routes/{test_route_uuid}/regenerate")
 
     assert resp.status_code == 200
     assert json.loads(resp.data)["token"] != prev_token
 
+def test_add_user_link(router_app: FlaskClient, test_route_uuid: str):
+    test_auth = {
+        "headers": {
+            "user": "other_user@sanger.ac.uk"
+        }
+    }
+
+    assert router_app.post(f"/links/{test_route_uuid}", **test_auth).status_code == 201
+
+    assert len(json.loads(router_app.get("/routes", **test_auth).data)) == 1
+
+def test_remove_user_link(router_app: FlaskClient, test_route_uuid: str):
+    test_auth = {
+        "headers": {
+            "user": "other_user@sanger.ac.uk"
+        }
+    }
+
+    test_add_user_link(router_app, test_route_uuid)
+
+    assert router_app.delete(f"/links/{test_route_uuid}", **test_auth).status_code == 204
+
+    assert len(json.loads(router_app.get("/routes", **test_auth).data)) == 0
+
 def test_stats(router_app: FlaskClient, test_route_uuid: str):
     pass
     # TODO get elasticsearch running on test
-    # assert router_app.get(f"/routes/{test_route_uuid}/statistics", **auth).status_code == 200
+    # assert router_app.get(f"/routes/{test_route_uuid}/statistics").status_code == 200

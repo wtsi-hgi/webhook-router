@@ -5,7 +5,6 @@ import uuid
 
 from .models import Route, get_route_json
 from .errors import *
-from .UserLinkDataMapper import UserLinkDataMapper
 from pythonjsonlogger import jsonlogger
 import connexion
 import flask
@@ -14,10 +13,11 @@ from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, Boo
 class RouteDataMapper:
     """
     Data mapper for the Route type.
-    NOTE: This may be called by ConnextionDespatcher, so naming of arguments is important
+    NOTE: This may be called by ConnextionDespatcher, so naming of arguments is important.
+    NOTE: user_link_datamapper property needs to be instantiated before this class can be used
     """
-    def __init__(self, user_link_datamapper: UserLinkDataMapper):
-        self._user_link_datamapper = user_link_datamapper
+    def __init__(self):
+        self.user_link_datamapper = None # type: UserLinkDataMapper
 
     def _get_route_from_uuid(self, uuid: str) -> Route:
         try:
@@ -66,7 +66,7 @@ class RouteDataMapper:
             uuid=route_uuid,
             token=RouteDataMapper._generate_new_token())
 
-        self._user_link_datamapper.add_user_link(user, route_uuid)
+        self.user_link_datamapper.add_user_link(user, route_uuid)
 
         route.save()
 
@@ -82,3 +82,5 @@ class RouteDataMapper:
             **get_route_json(route),
             "token": new_token
         }
+
+from .UserLinkDataMapper import UserLinkDataMapper

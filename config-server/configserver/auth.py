@@ -10,7 +10,10 @@ def test_auth():
     """
     Test auth function
     """
-    return "test_user@sanger.ac.uk"
+    try:
+        return flask.request.headers.get("user", "test_user@sanger.ac.uk")
+    except:
+        return "test_user@sanger.ac.uk"
 
 def google_auth(google_oauth_clientID: str):
     """

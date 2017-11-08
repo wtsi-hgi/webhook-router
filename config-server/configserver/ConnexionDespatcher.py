@@ -19,7 +19,6 @@ route_data_mapper_mappings = {
     "regenerate_token": "regenerate_token"
 }
 user_link_data_mapper_mapppings = {
-    "add_route_link": "add_user_link",
     "delete_route_link": "remove_user_link",
     "get_all_routes": "get_users_links"
 }
@@ -120,8 +119,13 @@ class ConnexionDespatcher:
 
         return route
 
-    def add_existing_route(self, uuid: str, user: str):
-        pass
+    def add_route_link(self, user: str, uuid: str):
+        # This also checks if the uuid exists
+        route = self._route_data_mapper.get(uuid)
+        
+        self._user_link_data_mapper.add_user_link(user, uuid)
+
+        return route
 
     def get_route_statistics(self, uuid: str):
         # make sure the uuid is actually valid

@@ -13,23 +13,23 @@ class UserLinkDataMapper:
     Data mapper for the UserLink type.
     NOTE: This may be called by ConnextionDespatcher, so naming of arguments is important
     """
+    def __init__(self):
+        self.route_datamapper = None # type: RouteDataMapper
+
     def _try_get_link(self, user: str, uuid: str):
-        return UserLink.get((UserLink.route_uuid == uuid) & (UserLink.user == user))
+        return UserLink.get((UserLink.route == uuid) & (UserLink.user == user))
 
     def add_user_link(self, user: str, uuid: str):
         try:
             link = self._try_get_link(user, uuid)
         except DoesNotExist:
-            route = UserLink(
+
+            link = UserLink(
                 user=user,
-                route_uuid=uuid
+                route=uuid
             )
 
-            route.save()
-
-            return route
-        else:
-            return link
+            link.save()
 
     def get_users_links(self, user: str):
         routes = Route.select().join(UserLink).where(UserLink.user == user)
@@ -43,3 +43,5 @@ class UserLinkDataMapper:
             pass # Make this idempotent
         else:
             link.delete_instance()
+
+from .RouteDataMapper import RouteDataMapper
