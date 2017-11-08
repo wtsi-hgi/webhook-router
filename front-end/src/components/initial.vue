@@ -17,7 +17,7 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
 import DisplayRoutesComponent from "./display-routes.vue";
-import AddRouteComponent from "./add-route.vue";
+import createRouteComponent from "./create-route.vue";
 import ModifyRoute from "./modify-route.vue";
 import SignInComponent from "./signin.vue";
 import NavBarComponent from "./whr-navbar.vue";
@@ -38,7 +38,7 @@ const router = new VueRouter({
     base: __dirname,
     routes: [
         {path: "/", component: DisplayRoutesComponent, name: "home"},
-        {path: "/add-route", component: AddRouteComponent, name: "add-route"},
+        {path: "/create-route", component: createRouteComponent, name: "create-route"},
         {path: "/routes/:uuid", component: ModifyRoute, props: true, name: "modify-route"},
         {path: "*", component: NotFoundComponent}
     ]

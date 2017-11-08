@@ -23,21 +23,21 @@ beforeAll(async () => {
     await delay(5000);
 }, 5500)
 
-async function addRoute(dest: string, options = {}){
-    let addRouteResp = await axios.post(`http://127.0.0.1:${configPort}/add-route`, {
+async function createRoute(dest: string, options = {}){
+    let createRouteResp = await axios.post(`http://127.0.0.1:${configPort}/create-route`, {
         name: "route",
         destination: dest,
         ...options
     })
 
-    let token: string = addRouteResp.data.token;
-    expect(addRouteResp.data.token).not.toBeUndefined;
+    let token: string = createRouteResp.data.token;
+    expect(createRouteResp.data.token).not.toBeUndefined;
 
     return token;
 }
 
 async function testRoutingToAddress(location: string, options = {}){
-    let token = await addRoute(location, options);
+    let token = await createRoute(location, options);
     
     return await axios.post(`http://127.0.0.1:${routerPort}/${token}`)
 }

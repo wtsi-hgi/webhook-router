@@ -81,12 +81,12 @@ export const DefaultApiFetchParamCreator = {
      * @summary Gets all routes that are configured
      * @param newRoute 
      */
-    addRoute(params: {  "newRoute": NewRoute; }, options?: any): FetchArgs {
+    createRoute(params: {  "newRoute": NewRoute; }, options?: any): FetchArgs {
         // verify required parameter "newRoute" is set
         if (params["newRoute"] == null) {
-            throw new Error("Missing required parameter newRoute when calling addRoute");
+            throw new Error("Missing required parameter newRoute when calling createRoute");
         }
-        const baseUrl = `/add-route`;
+        const baseUrl = `/create-route`;
         let urlObj = url.parse(baseUrl, true);
         let fetchOptions: RequestInit = Object.assign({}, { method: "POST" }, options);
 
@@ -285,8 +285,8 @@ export const DefaultApiFp = {
      * @summary Gets all routes that are configured
      * @param newRoute 
      */
-    addRoute(params: { "newRoute": NewRoute;  }, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<Route> {
-        const fetchArgs = DefaultApiFetchParamCreator.addRoute(params, options);
+    createRoute(params: { "newRoute": NewRoute;  }, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<Route> {
+        const fetchArgs = DefaultApiFetchParamCreator.createRoute(params, options);
         return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
             return fetch(basePath + fetchArgs.url, fetchArgs.options).then((response) => {
                 if (response.status >= 200 && response.status < 300) {
@@ -427,8 +427,8 @@ export class DefaultApi extends BaseAPI {
      * @summary Gets all routes that are configured
      * @param newRoute 
      */
-    addRoute(params: {  "newRoute": NewRoute; }, options?: any) {
-        return DefaultApiFp.addRoute(params, options)(this.fetch, this.basePath);
+    createRoute(params: {  "newRoute": NewRoute; }, options?: any) {
+        return DefaultApiFp.createRoute(params, options)(this.fetch, this.basePath);
     }
     /**
      * 
@@ -498,8 +498,8 @@ export const DefaultApiFactory = function (fetch?: FetchAPI, basePath?: string) 
          * @summary Gets all routes that are configured
          * @param newRoute 
          */
-        addRoute(params: {  "newRoute": NewRoute; }, options?: any) {
-            return DefaultApiFp.addRoute(params, options)(fetch, basePath);
+        createRoute(params: {  "newRoute": NewRoute; }, options?: any) {
+            return DefaultApiFp.createRoute(params, options)(fetch, basePath);
         },
         /**
          * 

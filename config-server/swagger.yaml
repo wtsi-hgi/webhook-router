@@ -19,7 +19,7 @@ paths:
         - googleToken: []
       responses:
         '204':
-          description: Webhook routed correctly
+          description: Webhook deleted
         default:
           description: unexpected error
           schema:
@@ -128,10 +128,10 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/Error"
-  /add-route:
+  /create-route:
     post:
-      summary: Gets all routes that are configured
-      operationId: add_route
+      summary: Creates a new route and adds it to the user's routes
+      operationId: create_route
       security: 
         - googleToken: []
       parameters:
@@ -142,9 +142,42 @@ paths:
             $ref: "#/definitions/NewRoute"
       responses:
         '201':
-          description: Expected response to a valid request
+          description: The new route
           schema:
             $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /links/{uuid}:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        description: The uuid of the route
+        type: string
+    post:
+      summary: Adds an existing route to a user's list of routes
+      operationId: add_route_link
+      security: 
+        - googleToken: []
+      responses:
+        '201':
+          description: The existing route
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      summary: Removes a user's link
+      operationId: delete_route_link
+      security:
+        - googleToken: []
+      responses:
+        '204':
+          description: Webhook deleted
         default:
           description: unexpected error
           schema:
@@ -163,13 +196,13 @@ definitions:
         type: boolean
         default: false
   PatchRoute:
-    properties:
-      name:
-        type: string
-      destination:
-        type: string
-      no_ssl_verification:
-        type: boolean
+      properties:
+        name:
+          type: string
+        destination:
+          type: string
+        no_ssl_verification:
+          type: boolean
   RouteStatistics:
     required:
       - num_successes

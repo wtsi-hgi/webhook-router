@@ -1,3 +1,3 @@
-from main import main
+from .configserver import main
 
 main()

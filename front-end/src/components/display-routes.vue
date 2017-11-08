@@ -2,10 +2,10 @@
 <div>
     <whr-navbar>
         <span class="divider">&nbsp;</span>
-        <router-link to="add-route">
+        <router-link to="create-route">
             <button type="button" class="btn btn-outline-primary"><span class="oi oi-file"></span> Create Route</button>
         </router-link>
-        <router-link style="margin-left: 5px" to="add-route">
+        <router-link style="margin-left: 5px" to="create-route">
             <button type="button" class="btn btn-outline-secondary"><span class="oi oi-plus"></span> Add Existing Route</button>
         </router-link>
         <span class="mr-auto"></span><!--Move the other elements to the left-->

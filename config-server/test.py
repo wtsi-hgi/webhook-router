@@ -1,6 +1,6 @@
 import json
 
-from .server import Server, test_auth
+from configserver import ConfigServer, test_auth
 from flask.testing import FlaskClient
 import pytest
 from peewee import SqliteDatabase
@@ -13,7 +13,7 @@ auth = {
 
 @pytest.fixture()
 def webhook_server():
-    server = Server(
+    server = ConfigServer(
         debug=True,
         db=SqliteDatabase(':memory:'),
         auth=test_auth
@@ -26,17 +26,17 @@ def router_app(webhook_server):
     return webhook_server.app.app.test_client()  # type: FlaskClient
 
 @pytest.fixture()
-def test_route_uuid(webhook_server: Server) -> str:
-    new_route = webhook_server.add_route({
+def test_route_uuid(webhook_server: ConfigServer) -> str:
+    new_route = webhook_server.depatcher.resolve_name("create_route")({
         "name": "route",
         "destination": "127.0.0.1"
     })
     
     return new_route[0]["uuid"]
 
-def test_add_route(router_app: FlaskClient):
-    add_route_resp = router_app.post(
-        "/add-route",
+def test_create_route(router_app: FlaskClient):
+    create_route_resp = router_app.post(
+        "/create-route",
         data=json.dumps({
             "name": "route",
             "destination": "127.0.0.1"
@@ -45,7 +45,7 @@ def test_add_route(router_app: FlaskClient):
         **auth
     )
 
-    assert add_route_resp.status_code == 201
+    assert create_route_resp.status_code == 201
 
 def test_get(router_app: FlaskClient, test_route_uuid: str):
     assert router_app.get(f"/routes/{test_route_uuid}").status_code == 200

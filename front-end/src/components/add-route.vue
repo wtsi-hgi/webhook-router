@@ -71,7 +71,7 @@ export default class extends Vue {
     api: swaggerAPI.DefaultApi;
 
     async postForm(){
-        await this.api.addRoute({
+        await this.api.createRoute({
             newRoute: {
                 destination: this.destination,
                 name: this.name,
