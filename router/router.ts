@@ -133,8 +133,8 @@ function routeRequest(request: http.IncomingMessage, response: http.ServerRespon
         proxy.web(request, response, {
             target: route.destination,
             secure: !route.no_ssl_verification
-        }, (error: Error & {code: string}) => {
-            reject(new RoutingError(error, route.uuid));
+        }, error => {
+            reject(new RoutingError(<Error & {code: string}>error, route.uuid));
         });
     })
 }
