@@ -16,12 +16,12 @@ route_data_mapper_mappings = {
     "get_route": "get",
     "patch_route": "update",
     "get_by_token": "get_by_token",
-    "regenerate_token": "regenerate_token",
-    "get_all_routes": "get_all"
+    "regenerate_token": "regenerate_token"
 }
 user_link_data_mapper_mapppings = {
     "add_route_link": "add_user_link",
-    "delete_route_link": "remove_user_link"
+    "delete_route_link": "remove_user_link",
+    "get_all_routes": "get_users_links"
 }
 
 ignore_auth = [

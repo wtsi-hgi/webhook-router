@@ -1,42 +1,26 @@
 from abc import ABC, ABCMeta
 import logging
+from .errors import *
+from .models import UserLink, Route, get_route_json
 
 from pythonjsonlogger import jsonlogger
 import connexion
 import flask
-from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, BooleanField
-
-class AbstractBaseUserLinks(Model):
-    user = CharField()
-    route = CharField()
-
-def get_user_link_model(db: Database):
-    """
-    Gets the route model for a given database (works around peewee's irregularities)
-    """
-    class UserLink(AbstractBaseUserLinks):
-        class Meta:
-            database = db
-
-    return UserLink
+from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, ForeignKeyField
 
 class UserLinkDataMapper:
     """
     Data mapper for the UserLink type.
     NOTE: This may be called by ConnextionDespatcher, so naming of arguments is important
     """
-    def __init__(self, db: Database):
-        self._UserLink = get_user_link_model(db)
-        db.create_tables([self._UserLink], True)
-
     def _try_get_link(self, user: str, uuid: str):
-        return self._UserLink.get((self._UserLink.route_uuid == uuid) & (self._UserLink.user == user))
+        return UserLink.get((UserLink.route_uuid == uuid) & (UserLink.user == user))
 
     def add_user_link(self, user: str, uuid: str):
         try:
             link = self._try_get_link(user, uuid)
         except DoesNotExist:
-            route = self._UserLink(
+            route = UserLink(
                 user=user,
                 route_uuid=uuid
             )
@@ -48,7 +32,9 @@ class UserLinkDataMapper:
             return link
 
     def get_users_links(self, user: str):
-        return self._UserLink.select().where(self._UserLink.user == user)
+        routes = Route.select().join(UserLink).where(UserLink.user == user)
+
+        return [get_route_json(route) for route in routes]
 
     def remove_user_link(self, user: str, uuid: str):
         try:

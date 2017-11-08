@@ -15,6 +15,8 @@ from .errors import *
 from .logging import *
 from .auth import *
 
+from .models import proxy_db, UserLink, Route
+
 logger = ConfigServerLogger()
 
 class ConfigServer:
@@ -24,10 +26,12 @@ class ConfigServer:
     def __init__(self, debug: bool, db: Database, auth: Callable[[], str]):
         self._db = db
         self._auth = auth
+        proxy_db.initialize(db)
         self._db.connect()
+        db.create_tables([Route, UserLink], True)
 
-        user_link_dm = UserLinkDataMapper(db)
-        route_dm = RouteDataMapper(db, user_link_dm)
+        user_link_dm = UserLinkDataMapper()
+        route_dm = RouteDataMapper(user_link_dm)
         self.depatcher = ConnexionDespatcher(
             self._auth,
             route_dm,

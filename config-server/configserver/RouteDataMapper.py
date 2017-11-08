@@ -3,6 +3,7 @@ import logging
 import secrets
 import uuid
 
+from .models import Route, get_route_json
 from .errors import *
 from .UserLinkDataMapper import UserLinkDataMapper
 from pythonjsonlogger import jsonlogger
@@ -10,49 +11,17 @@ import connexion
 import flask
 from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, BooleanField
 
-class AbstractBaseRoute(Model):
-    uuid = CharField()
-    owner = CharField()
-    name = CharField()
-    destination = CharField()
-    no_ssl_verification = BooleanField()
-    token = CharField()
-
-def get_route_model(db: Database):
-    """
-    Gets the Route model for a given database (works around peewee's irregularities)
-    """
-    class Route(AbstractBaseRoute):
-        class Meta:
-            database = db
-
-    return Route
-
-def get_route_json(route: AbstractBaseRoute):
-    """
-    Gets the json respresentation of given route, for returning to the user
-    """
-    public_fields = ["uuid", "owner", "name", "destination", "token", "no_ssl_verification"] # i.e. not id
-    new_ob = {}
-
-    for field in public_fields:
-        new_ob[field] = getattr(route, field)
-
-    return new_ob
-
 class RouteDataMapper:
     """
     Data mapper for the Route type.
     NOTE: This may be called by ConnextionDespatcher, so naming of arguments is important
     """
-    def __init__(self, db: Database, user_link_datamapper: UserLinkDataMapper):
-        self._Route = get_route_model(db)
+    def __init__(self, user_link_datamapper: UserLinkDataMapper):
         self._user_link_datamapper = user_link_datamapper
-        db.create_tables([self._Route], True)
 
-    def _get_route_from_uuid(self, uuid: str) -> AbstractBaseRoute:
+    def _get_route_from_uuid(self, uuid: str) -> Route:
         try:
-            return self._Route.get(self._Route.uuid == uuid)
+            return Route.get(Route.uuid == uuid)
         except DoesNotExist as e:
             raise InvalidRouteUUIDError() from e
     
@@ -80,22 +49,17 @@ class RouteDataMapper:
 
     def get_by_token(self, token: str):
         # TODO look at timing attacks here
-        routes = self._Route.select().where(self._Route.token == token)
+        routes = Route.select().where(Route.token == token)
 
         if len(routes) != 1:
             raise InvalidRouteTokenError()
         else:
             return get_route_json(routes[0])
 
-    def get_all(self, user: str):
-        routes = self._Route.select().where(self._Route.owner == user)
-
-        return [get_route_json(route) for route in routes]
-
     def add(self, owner: str, destination: str, name: str, no_ssl_verification: bool):
         route_uuid = str(uuid.uuid4())
 
-        route = self._Route(
+        route = Route(
             owner=owner,
             destination=destination,
             name=name,
@@ -103,7 +67,7 @@ class RouteDataMapper:
             uuid=route_uuid,
             token=RouteDataMapper._generate_new_token())
 
-        # self._user_link_datamapper.add_user_link(owner, route_uuid) TODO this
+        self._user_link_datamapper.add_user_link(owner, route_uuid)
 
         route.save()
 
