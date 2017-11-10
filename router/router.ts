@@ -178,7 +178,7 @@ route.all("/:token", (request: http.IncomingMessage & {params: any}, response: h
                     await delay(args.warningDelay)
                     return timeoutSymbol;
                 })()
-            ]) == <any>timeoutSymbol){
+            ]) == timeoutSymbol){
                 logger.warn(`Long running request. Request is taking more than ${args.warningDelay / 1000} seconds`, {
                     uuid: route.uuid,
                     ...getRequestLogData(request)

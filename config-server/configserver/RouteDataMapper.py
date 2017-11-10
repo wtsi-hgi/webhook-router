@@ -4,6 +4,7 @@ import secrets
 import uuid
 
 from .models import Route, get_route_json
+from .UserLinkDataMapper import UserLinkDataMapper
 from .errors import *
 from pythonjsonlogger import jsonlogger
 import connexion
@@ -16,8 +17,8 @@ class RouteDataMapper:
     NOTE: This may be called by ConnextionDespatcher, so naming of arguments is important.
     NOTE: user_link_datamapper property needs to be instantiated before this class can be used
     """
-    def __init__(self):
-        self.user_link_datamapper = None # type: UserLinkDataMapper
+    def __init__(self, user_link_datamapper: UserLinkDataMapper):
+        self._user_link_datamapper = user_link_datamapper
 
     def _get_route_from_uuid(self, uuid: str) -> Route:
         try:
@@ -66,7 +67,7 @@ class RouteDataMapper:
             uuid=route_uuid,
             token=RouteDataMapper._generate_new_token())
 
-        self.user_link_datamapper.add_user_link(user, route_uuid)
+        self._user_link_datamapper.add_user_link(user, route_uuid)
 
         route.save()
 
@@ -82,5 +83,3 @@ class RouteDataMapper:
             **get_route_json(route),
             "token": new_token
         }
-
-from .UserLinkDataMapper import UserLinkDataMapper

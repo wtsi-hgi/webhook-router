@@ -77,7 +77,31 @@ export interface Route {
 export const DefaultApiFetchParamCreator = {
     /**
      * 
-     * @summary Gets all routes that are configured
+     * @summary Adds an existing route to a user's list of routes
+     * @param uuid The uuid of the route
+     */
+    addRouteLink(params: {  "uuid": string; }, options?: any): FetchArgs {
+        // verify required parameter "uuid" is set
+        if (params["uuid"] == null) {
+            throw new Error("Missing required parameter uuid when calling addRouteLink");
+        }
+        const baseUrl = `/links/{uuid}`
+            .replace(`{${"uuid"}}`, `${ params["uuid"] }`);
+        let urlObj = url.parse(baseUrl, true);
+        let fetchOptions: RequestInit = Object.assign({}, { method: "POST" }, options);
+
+        let contentTypeHeader: Dictionary<string> = {};
+        if (contentTypeHeader) {
+            fetchOptions.headers = Object.assign({}, contentTypeHeader, fetchOptions.headers);
+        }
+        return {
+            url: url.format(urlObj),
+            options: fetchOptions,
+        };
+    },
+    /**
+     * 
+     * @summary Creates a new route and adds it to the user's routes
      * @param newRoute 
      */
     createRoute(params: {  "newRoute": NewRoute; }, options?: any): FetchArgs {
@@ -113,6 +137,30 @@ export const DefaultApiFetchParamCreator = {
             throw new Error("Missing required parameter uuid when calling deleteRoute");
         }
         const baseUrl = `/routes/{uuid}`
+            .replace(`{${"uuid"}}`, `${ params["uuid"] }`);
+        let urlObj = url.parse(baseUrl, true);
+        let fetchOptions: RequestInit = Object.assign({}, { method: "DELETE" }, options);
+
+        let contentTypeHeader: Dictionary<string> = {};
+        if (contentTypeHeader) {
+            fetchOptions.headers = Object.assign({}, contentTypeHeader, fetchOptions.headers);
+        }
+        return {
+            url: url.format(urlObj),
+            options: fetchOptions,
+        };
+    },
+    /**
+     * 
+     * @summary Removes a user's link
+     * @param uuid The uuid of the route
+     */
+    deleteRouteLink(params: {  "uuid": string; }, options?: any): FetchArgs {
+        // verify required parameter "uuid" is set
+        if (params["uuid"] == null) {
+            throw new Error("Missing required parameter uuid when calling deleteRouteLink");
+        }
+        const baseUrl = `/links/{uuid}`
             .replace(`{${"uuid"}}`, `${ params["uuid"] }`);
         let urlObj = url.parse(baseUrl, true);
         let fetchOptions: RequestInit = Object.assign({}, { method: "DELETE" }, options);
@@ -281,7 +329,24 @@ export const DefaultApiFetchParamCreator = {
 export const DefaultApiFp = {
     /**
      * 
-     * @summary Gets all routes that are configured
+     * @summary Adds an existing route to a user's list of routes
+     * @param uuid The uuid of the route
+     */
+    addRouteLink(params: { "uuid": string;  }, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<Route> {
+        const fetchArgs = DefaultApiFetchParamCreator.addRouteLink(params, options);
+        return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
+            return fetch(basePath + fetchArgs.url, fetchArgs.options).then((response) => {
+                if (response.status >= 200 && response.status < 300) {
+                    return response.json();
+                } else {
+                    throw response;
+                }
+            });
+        };
+    },
+    /**
+     * 
+     * @summary Creates a new route and adds it to the user's routes
      * @param newRoute 
      */
     createRoute(params: { "newRoute": NewRoute;  }, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<Route> {
@@ -303,6 +368,23 @@ export const DefaultApiFp = {
      */
     deleteRoute(params: { "uuid": string;  }, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
         const fetchArgs = DefaultApiFetchParamCreator.deleteRoute(params, options);
+        return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
+            return fetch(basePath + fetchArgs.url, fetchArgs.options).then((response) => {
+                if (response.status >= 200 && response.status < 300) {
+                    return response;
+                } else {
+                    throw response;
+                }
+            });
+        };
+    },
+    /**
+     * 
+     * @summary Removes a user's link
+     * @param uuid The uuid of the route
+     */
+    deleteRouteLink(params: { "uuid": string;  }, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<any> {
+        const fetchArgs = DefaultApiFetchParamCreator.deleteRouteLink(params, options);
         return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
             return fetch(basePath + fetchArgs.url, fetchArgs.options).then((response) => {
                 if (response.status >= 200 && response.status < 300) {
@@ -423,7 +505,15 @@ export const DefaultApiFp = {
 export class DefaultApi extends BaseAPI {
     /**
      * 
-     * @summary Gets all routes that are configured
+     * @summary Adds an existing route to a user's list of routes
+     * @param uuid The uuid of the route
+     */
+    addRouteLink(params: {  "uuid": string; }, options?: any) {
+        return DefaultApiFp.addRouteLink(params, options)(this.fetch, this.basePath);
+    }
+    /**
+     * 
+     * @summary Creates a new route and adds it to the user's routes
      * @param newRoute 
      */
     createRoute(params: {  "newRoute": NewRoute; }, options?: any) {
@@ -436,6 +526,14 @@ export class DefaultApi extends BaseAPI {
      */
     deleteRoute(params: {  "uuid": string; }, options?: any) {
         return DefaultApiFp.deleteRoute(params, options)(this.fetch, this.basePath);
+    }
+    /**
+     * 
+     * @summary Removes a user's link
+     * @param uuid The uuid of the route
+     */
+    deleteRouteLink(params: {  "uuid": string; }, options?: any) {
+        return DefaultApiFp.deleteRouteLink(params, options)(this.fetch, this.basePath);
     }
     /**
      * 
@@ -494,7 +592,15 @@ export const DefaultApiFactory = function (fetch?: FetchAPI, basePath?: string) 
     return {
         /**
          * 
-         * @summary Gets all routes that are configured
+         * @summary Adds an existing route to a user's list of routes
+         * @param uuid The uuid of the route
+         */
+        addRouteLink(params: {  "uuid": string; }, options?: any) {
+            return DefaultApiFp.addRouteLink(params, options)(fetch, basePath);
+        },
+        /**
+         * 
+         * @summary Creates a new route and adds it to the user's routes
          * @param newRoute 
          */
         createRoute(params: {  "newRoute": NewRoute; }, options?: any) {
@@ -507,6 +613,14 @@ export const DefaultApiFactory = function (fetch?: FetchAPI, basePath?: string) 
          */
         deleteRoute(params: {  "uuid": string; }, options?: any) {
             return DefaultApiFp.deleteRoute(params, options)(fetch, basePath);
+        },
+        /**
+         * 
+         * @summary Removes a user's link
+         * @param uuid The uuid of the route
+         */
+        deleteRouteLink(params: {  "uuid": string; }, options?: any) {
+            return DefaultApiFp.deleteRouteLink(params, options)(fetch, basePath);
         },
         /**
          * 

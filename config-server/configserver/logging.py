@@ -36,8 +36,10 @@ class ConfigServerLogger:
         request = flask.request
         if response.status_code < 400:
             log_method = self.logger.info
-        else:
+        elif 400 <= response.status_code < 500:
             log_method = self.logger.warning
+        else:
+            log_method = self.logger.error
         
         log_method("Http request", extra={
             "method": request.method,

@@ -14,6 +14,15 @@ export function closeModal(modal: HTMLElement){
 }
 
 export function getAuthOptions(googleToken: string){
+    let testUserProp = localStorage.getItem("testUser");
+    if(testUserProp != undefined){
+        return {
+            headers: {
+                user: testUserProp
+            }
+        }
+    }
+
     return {
         headers: {
             "Google-Auth-Token": googleToken

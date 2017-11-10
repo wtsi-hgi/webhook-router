@@ -86,7 +86,6 @@ class ConnexionDespatcher:
                 else:
                     resp = func(*args, **kwargs)
 
-                print(resp)
                 code = status_codes.get(name)
                 # Add status codes
                 if code is not None:

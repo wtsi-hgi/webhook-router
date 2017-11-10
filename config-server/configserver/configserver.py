@@ -31,11 +31,7 @@ class ConfigServer:
         db.create_tables([Route, UserLink], True)
 
         user_link_dm = UserLinkDataMapper()
-        route_dm = RouteDataMapper()
-
-        # These classes depend on each other, so fill the properties correctly
-        user_link_dm.route_datamapper = route_dm
-        route_dm.user_link_datamapper = user_link_dm
+        route_dm = RouteDataMapper(user_link_dm)
 
         self.depatcher = ConnexionDespatcher(
             self._auth,
