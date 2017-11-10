@@ -1,3 +1,0 @@
-connexion
-peewee
-google_auth
