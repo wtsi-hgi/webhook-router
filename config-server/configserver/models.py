@@ -9,6 +9,8 @@ class Route(Model):
     destination = CharField()
     no_ssl_verification = BooleanField()
     token = CharField()
+    # tokenId: A starting bit of the token, which is used for querying the token in the database
+    token_id = CharField()
 
     class Meta:
         database = proxy_db

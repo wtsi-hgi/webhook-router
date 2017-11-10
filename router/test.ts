@@ -3,6 +3,8 @@ import http = require("http");
 import https = require("https");
 import os = require("os");
 import axios, {AxiosError} from "axios";
+import _ = require("lodash");
+var ttest = require("ttest");
 
 var configServer: cp.ChildProcess;
 var routerServer: cp.ChildProcess;
@@ -17,9 +19,9 @@ function delay(time: number){
 
 beforeAll(async () => {
     configServer = cp.spawn(`cd ../config-server && python -m configserver --port ${configPort} --host 127.0.0.1 --debug`, 
-        [], {shell: true, stdio: "inherit"});
+        [], {shell: true});
     routerServer = cp.spawn(`node ./router.js --port ${routerPort} --host 127.0.0.1 --configServer http://127.0.0.1:${configPort}`,
-        [], {shell: true, stdio: "inherit"});
+        [], {shell: true});
     await delay(5000);
 }, 5500)
 
@@ -96,6 +98,73 @@ describe("httpbin", () => {
         expect(resp.data).toBeTruthy;
         expect(resp.status).toEqual(200);
     })
+})
+
+async function time(func: () => Promise<any>){
+    let startTime = Date.now();
+    await func();
+    let endTime = Date.now();
+
+    return endTime - startTime;
+}
+
+async function timeToken(token: string){
+    return await time(async () => {
+        await axios.post(`http://127.0.0.1:${routerPort}/${token}`, undefined, {
+            validateStatus: () => true // make sure there is no exception time loss
+        })
+    })
+}
+
+/** Concurrent mapping over promises */
+async function promiseMap<InputType, OutputType>(array: InputType[], promise: (item: InputType) => Promise<OutputType>){
+    let result = <OutputType[]>[];
+    
+    await Promise.all(array.map((item, index) => {
+        return promise(item).then(returnItem => {
+            result[index] = returnItem
+        })
+    }))
+
+    return result;
+}
+
+it("can route at least 5 routes per second", async () => {
+    let token = await createRoute("http://httpbin.org/post");
+
+    let timeTaken = await time(async () => {
+        for(var i = 0;i < 5;i++){
+            await timeToken(token);
+        }
+    })
+
+    expect(timeTaken).toBeLessThan(1000);
+})
+
+it("isn't susceptible to timing attacks", async () => {
+    let token = await createRoute("http://httpbin.org/post");
+    let getRndChar = () => _.random(35).toString(36);
+
+    let getNearlyCorrect = () => token.slice(0, -1) + getRndChar();
+    let getNotVeryCorrect = () => token.slice(0, -10) + _.times(10, getRndChar).join("");
+    async function getTimes(func: any) {
+        return await promiseMap(
+                _.range(0, 50),
+                async () => await timeToken(func()))
+    }
+
+    let nearlyCorrectTimes = await getTimes(getNearlyCorrect);
+    await delay(500);
+    let notVeryCorrectTimes = await getTimes(getNearlyCorrect);
+
+    let test = ttest(nearlyCorrectTimes, notVeryCorrectTimes, {alternative: "greater"})
+    let confidence = test.pValue()
+
+    console.log(confidence)
+
+    if(confidence < 0.05){
+        console.warn(`Timing attack test has confidence of lower than 0.05 (=${confidence})`)
+    }
 })
 
 afterAll(() => {

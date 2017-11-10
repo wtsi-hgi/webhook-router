@@ -50,6 +50,11 @@ def test_create_route(router_app: FlaskClient):
 def test_get(router_app: FlaskClient, test_route_uuid: str):
     assert router_app.get(f"/routes/{test_route_uuid}").status_code == 200
 
+def test_get_by_token(router_app: FlaskClient, test_route_uuid: str):
+    token = json.loads(router_app.get(f"/routes/{test_route_uuid}").data)["token"]
+
+    assert router_app.get(f"/routes/token/{token}").status_code == 200
+
 
 def test_patch(router_app: FlaskClient, test_route_uuid: str):
     assert router_app.patch(

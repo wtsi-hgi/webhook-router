@@ -24,8 +24,7 @@ user_link_data_mapper_mapppings = {
 }
 
 ignore_auth = [
-    "get_by_token",
-    "get_route"
+    "get_by_token"
 ]
 
 # Which functions to automatically add status codes to

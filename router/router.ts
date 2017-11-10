@@ -6,6 +6,7 @@ import httpProxy = require("http-proxy");
 var route = require("router")();
 import argparse = require("argparse");
 import winston = require("winston");
+import Limiter = require("ratelimiter");
 
 winston.remove(winston.transports.Console);
 
