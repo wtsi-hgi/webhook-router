@@ -3,6 +3,8 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:5.6.3
     networks: [app]
+    ports:
+      - "9200:9200"
   kibana:
     image: docker.elastic.co/kibana/kibana:5.6.3
     depends_on:
@@ -17,6 +19,7 @@ services:
     depends_on:
       - "elasticsearch"
     networks: [app]
+    env_file: [config.env]
   router:
     build: router
     ports:
@@ -32,9 +35,10 @@ services:
     depends_on:
       - "configserver"
     networks: [app]
+    env_file: [config.env]
 networks:
   app:
     ipam:
       driver: default
       config:
-        - subnet: 10.10.11.1/22
+        - subnet: 11.10.11.1/22

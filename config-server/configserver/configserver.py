@@ -5,7 +5,7 @@ from typing import Type, Callable
 import connexion
 import flask
 from peewee import SqliteDatabase, Database
-from flask_cors import CORS
+from flask_cors import CORS, core
 from http import HTTPStatus
 
 from .RouteDataMapper import RouteDataMapper
@@ -23,7 +23,7 @@ class ConfigServer:
     """
     Main class for serving requests
     """
-    def __init__(self, debug: bool, db: Database, auth: Callable[[], str]):
+    def __init__(self, debug: bool, db: Database, auth: Callable[[], str], front_end: str):
         self._db = db
         self._auth = auth
         proxy_db.initialize(db)
@@ -41,10 +41,12 @@ class ConfigServer:
         )
 
         self.app = connexion.App(__name__, specification_dir=".", debug=debug, server='tornado')
-        CORS(self.app.app)
+        CORS(self.app.app, origins=f"{front_end}*")
 
         self._set_error_handlers()
         self._setup_logging()
+
+        self.app.app.after_request(self.on_after_request)
 
         self.app.add_api(
             '../swagger.yaml',
@@ -65,8 +67,6 @@ class ConfigServer:
 
         # This is needed, as flask logs aren't propogated to the root logger
         add_file_log_handler(self.app.app.logger)
-
-        self.app.app.after_request(self.on_after_request)
     
     @staticmethod
     def on_after_request(response):
@@ -95,13 +95,14 @@ class ConfigServer:
     def close(self):
         self._db.close()
 
-def start_server(debug: bool, port: int, host: str, client_id: str=None):
+def start_server(debug: bool, port: int, host: str, front_end="http://localhost", client_id: str=None):
     if not debug and not client_id:
         raise TypeError("server: main(...) - debug=False requires client_id to have a value")
     server = ConfigServer(
         debug=debug,
         db=SqliteDatabase('db.db'),
-        auth=test_auth if debug else partial(google_auth, client_id)
+        auth=test_auth if debug else partial(google_auth, client_id),
+        front_end=front_end
     )
 
     logger.info("Server running", extra={
@@ -116,11 +117,12 @@ def main():
     parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
+    parser.add_argument("--front_end", help="Address of the front end", default="http://localhost")
     parser.add_argument("--client_id", help="Google client ID for oauth authentication")
 
     options = parser.parse_args()
 
-    start_server(options.debug, options.port, options.host, options.client_id)
+    start_server(options.debug, options.port, options.host, options.front_end, options.client_id)
 
 if __name__ == "__main__":
     main()

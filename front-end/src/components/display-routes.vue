@@ -70,7 +70,7 @@
 import Vue from "vue";
 import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
-import {configServer} from "../config"
+import {configServer} from "../servers.json"
 import NavBarComponent from "./whr-navbar.vue";
 import * as utils from "../utils";
 
