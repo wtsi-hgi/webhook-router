@@ -2,28 +2,39 @@ version: '3'
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:5.6.3
+    networks: [app]
   kibana:
     image: docker.elastic.co/kibana/kibana:5.6.3
     depends_on:
-    - "elasticsearch"
+      - "elasticsearch"
     ports:
-    - "5601:5601"
+      - "5601:5601"
+    networks: [app]
   configserver:
     build: config-server
     ports:
-    - "8081:8080"
+      - "8081:8080"
     depends_on:
-    - "elasticsearch"
+      - "elasticsearch"
+    networks: [app]
   router:
     build: router
     ports:
-     - "8082:8080"
+      - "8082:8080"
     depends_on:
-    - "elasticsearch"
-    - "configserver"
+      - "elasticsearch"
+      - "configserver"
+    networks: [app]
   frontend:
     build: front-end
     ports:
-    - "8080:80"
+      - "8080:80"
     depends_on:
-    - "configserver"
+      - "configserver"
+    networks: [app]
+networks:
+  app:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.11.1/22
