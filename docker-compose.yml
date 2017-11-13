@@ -29,7 +29,11 @@ services:
       - "configserver"
     networks: [app]
   frontend:
-    build: front-end
+    build:
+      context: front-end
+      args:
+        - CONFIG_SERVER
+        - ROUTING_SERVER
     ports:
       - "8080:80"
     depends_on:

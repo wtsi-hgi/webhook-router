@@ -80,6 +80,8 @@ module.exports = {
     ]
 }
 
+console.log(process.env)
+
 if (process.env.NODE_ENV === 'production') {
     module.exports.devtool = '#source-map'
     // http://vue-loader.vuejs.org/en/workflow/production.html
@@ -87,7 +89,6 @@ if (process.env.NODE_ENV === 'production') {
         new webpack.DefinePlugin({
             'process.env': {
                 NODE_ENV: '"production"',
-                FRONT_END: process.env.FRONT_END,
                 CONFIG_SERVER: process.env.CONFIG_SERVER,
                 ROUTING_SERVER: process.env.ROUTING_SERVER
             }

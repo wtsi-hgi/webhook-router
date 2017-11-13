@@ -11,9 +11,17 @@ ADD package-lock.json /front-end/package-lock.json
 WORKDIR /front-end
 RUN npm install
 
-# Add code files and build
+# Add code files
 
 ADD . /front-end
+
+# Specify the configuration variables
+
+ARG CONFIG_SERVER
+ARG ROUTING_SERVER
+
+# Build the files
+
 RUN npm run-script build
 
 # -------------------------------------
