@@ -95,7 +95,7 @@ class ConfigServer:
     def close(self):
         self._db.close()
 
-def start_server(debug: bool, port: int, host: str, front_end="http://localhost", client_id: str=None):
+def start_server(debug: bool, port: int, host: str, front_end="http://localhost:8080", client_id: str=None):
     if not debug and not client_id:
         raise TypeError("server: main(...) - debug=False requires client_id to have a value")
     server = ConfigServer(
@@ -117,7 +117,7 @@ def main():
     parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
-    parser.add_argument("--front_end", help="Address of the front end", default="http://localhost")
+    parser.add_argument("--front_end", help="Address of the front end", default="http://localhost:8080")
     parser.add_argument("--client_id", help="Google client ID for oauth authentication")
 
     options = parser.parse_args()
