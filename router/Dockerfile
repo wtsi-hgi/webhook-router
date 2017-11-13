@@ -1,4 +1,4 @@
-FROM node
+FROM node:8.9
 LABEL maintainer="th10@sanger.ac.uk"
 
 # Add fluent-bit

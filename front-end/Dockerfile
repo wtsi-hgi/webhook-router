@@ -1,7 +1,7 @@
 # -------------------------------------
 # Docker container for building the app
 # -------------------------------------
-FROM node AS build
+FROM node:8.9 AS build
 LABEL maintainer="th10@sanger.ac.uk"
 
 # Install dependencies and http-server
