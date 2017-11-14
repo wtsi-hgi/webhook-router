@@ -1,7 +1,8 @@
 from elasticsearch import Elasticsearch
+import os
 
 def get_route_stats(uuid: str):
-    es = Elasticsearch("http://elastic:changeme@elasticsearch:9200")
+    es = Elasticsearch(f"http://elastic:changeme@elasticsearch:9200")
 
     def get_query_object(query):
         return {

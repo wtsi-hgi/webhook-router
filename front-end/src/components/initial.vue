@@ -2,8 +2,12 @@
 <div>
     <div v-if="state=='start'">
         <whr-navbar></whr-navbar>
+        <errors ref="errors" slot="errors"></errors>
     </div>
-    <signin v-else-if="state=='not_signed_in'" @signedIn="token => login(token)"></signin>
+    <div v-else-if="state=='not_signed_in'">
+        <signin @signedIn="token => login(token)"></signin>
+        <errors ref="errors" slot="errors"></errors>
+    </div>
     <router-view v-else class="view" :key="$route.fullPath" :googleToken="googleToken" :api="api">
         <button type="button" class="btn btn-outline-warning" slot="logoutButton" @click="logout">Logout</button>
         <errors ref="errors" slot="errors"></errors>
@@ -26,7 +30,6 @@ import Component from 'vue-class-component';
 import ErrorsComponent from "./errors.vue";
 import * as swaggerAPI from "../api";
 import * as utils from "../utils";
-import {configServer} from "../config"
 var Mprogress = require("mprogress/mprogress.min.js"); // Do this, as the main module is not exported
 import {auto} from 'browser-unhandled-rejection';
 
@@ -63,7 +66,7 @@ export default class extends Vue {
     state = "start"
     private googleToken = ""
     auth: gapi.auth2.GoogleAuth;
-    api = new swaggerAPI.DefaultApi(this.fetchWrapper.bind(this), configServer);
+    api: swaggerAPI.DefaultApi;
     tokenExpiration: number;
     progressBar = new Mprogress({
         template: 3, // 3 = indeterminate progress bar
@@ -85,6 +88,12 @@ export default class extends Vue {
         
         try{
             return await fetch(input, init);
+        }
+        catch(e){
+            if(e instanceof Error && e.message == "Failed to fetch"){
+                e.message += ` ${input}`
+            }
+            throw e
         }
         finally{
             this.progressBar.end();
@@ -110,16 +119,35 @@ export default class extends Vue {
             this.state = "not_signed_in";
         })
     }
+
+    async getErrorString(e: any){
+        let errorText = e.toString();
+
+        if(e instanceof Response){
+            let respText: string | undefined = undefined;
+            try{
+                respText = (await e.json()).error;
+            }
+            catch{}
+
+            errorText = `Failed to get ${e.url}, ${e.statusText}` + 
+                (respText == undefined?"":`: ${respText}`)
+        }
+
+        return errorText;
+    }
     
-    mounted() {
-        window.addEventListener("unhandledrejection", (e) => {
-            console.error(e);
-            this.$refs.errors.addError((<any>e).reason);
+    async mounted() {
+        window.addEventListener("unhandledrejection", async (e) => {
+            this.$refs.errors.addError(await this.getErrorString((<any>e).reason));
         })
+
+        let configJSON = (await (await fetch("config.json")).json());
+        this.api = new swaggerAPI.DefaultApi(this.fetchWrapper.bind(this), configJSON.configServer);
 
         gapi.load('auth2', () => {
             gapi.auth2.init({
-                client_id: '859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com',
+                client_id: configJSON.clientId,
                 fetch_basic_profile: false,
                 scope: 'profile',
                 hosted_domain: "sanger.ac.uk"

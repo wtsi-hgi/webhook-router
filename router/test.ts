@@ -141,32 +141,6 @@ it("can route at least 5 routes per second", async () => {
     expect(timeTaken).toBeLessThan(1000);
 })
 
-it("isn't susceptible to timing attacks", async () => {
-    let token = await createRoute("http://httpbin.org/post");
-    let getRndChar = () => _.random(35).toString(36);
-
-    let getNearlyCorrect = () => token.slice(0, -1) + getRndChar();
-    let getNotVeryCorrect = () => token.slice(0, -10) + _.times(10, getRndChar).join("");
-    async function getTimes(func: any) {
-        return await promiseMap(
-                _.range(0, 50),
-                async () => await timeToken(func()))
-    }
-
-    let nearlyCorrectTimes = await getTimes(getNearlyCorrect);
-    await delay(500);
-    let notVeryCorrectTimes = await getTimes(getNearlyCorrect);
-
-    let test = ttest(nearlyCorrectTimes, notVeryCorrectTimes, {alternative: "greater"})
-    let confidence = test.pValue()
-
-    console.log(confidence)
-
-    if(confidence < 0.05){
-        console.warn(`Timing attack test has confidence of lower than 0.05 (=${confidence})`)
-    }
-})
-
 afterAll(() => {
     configServer.kill();
     routerServer.kill();

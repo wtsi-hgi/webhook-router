@@ -71,51 +71,52 @@
                     <pre><code>{{errorLogs}}</code></pre>
                 </div>
             </div>
-            </div>
+            <br />
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="deleteConfirm" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmLabel" aria-hidden="true" ref="deleteModal">
-        <div class="modal-dialog" role="document">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="deleteConfirmLabel">Confirm route deletion</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to delete "{{savedData.name}}"?
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-              <button type="button" class="btn btn-danger" @click="deleteRoute">Delete Route</button>
-            </div>
-          </div>
+<div class="modal fade" id="deleteConfirm" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmLabel" aria-hidden="true" ref="deleteModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="deleteConfirmLabel">Confirm route deletion</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            Are you sure you want to delete "{{savedData.name}}"?
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" @click="deleteRoute">Delete Route</button>
+        </div>
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="regenerateConfirm" tabindex="-1" role="dialog" aria-labelledby="regenerateConfirmLabel" aria-hidden="true" ref="regenerateModal">
-        <div class="modal-dialog" role="document">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="regenerateConfirmLabel">Confirm token regeneration</h5>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to regenerate the token of "{{savedData.name}}"?
-                <br />
-                <small>Regenerating tokens will break all links to this route.</small>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-              <button type="button" class="btn btn-danger" data-dismiss="modal" @click="regenerateToken">Regenerate Token</button>
-            </div>
-          </div>
+<div class="modal fade" id="regenerateConfirm" tabindex="-1" role="dialog" aria-labelledby="regenerateConfirmLabel" aria-hidden="true" ref="regenerateModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="regenerateConfirmLabel">Confirm token regeneration</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            Are you sure you want to regenerate the token of "{{savedData.name}}"?
+            <br />
+            <small>Regenerating tokens will break all links to this route.</small>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" data-dismiss="modal" @click="regenerateToken">Regenerate Token</button>
+        </div>
         </div>
     </div>
+</div>
 </div>
 </div>
 </template>
@@ -130,7 +131,6 @@
 import Vue from "vue";
 import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
-import {configServer, routingServer} from "../config"
 import NavBarComponent from "./whr-navbar.vue";
 import ErrorsComponent from "./errors.vue";
 import * as utils from "../utils";
@@ -157,7 +157,7 @@ export default class extends Vue {
 
     token = "";
     loaded = false;
-    routingServerLocation = routingServer;
+    routingServerLocation = "";
     $refs: {
         deleteModal: HTMLElement;
         regenerateModal: HTMLElement;
@@ -240,7 +240,7 @@ export default class extends Vue {
         return `[${error.level} ${error["@timestamp"]}] ${error.message} \n${propertyStr.join("\n")}`
     }
 
-    async displayErrors(){
+    async displayRouteErrors(){
         var stats = await this.api.getRouteStatistics({
             uuid: this.uuid
         }, this.authOptions);
@@ -252,21 +252,16 @@ export default class extends Vue {
 
     async mounted() {
         try{
-            await this.displayErrors();
+            await this.displayRouteErrors();
         }
         catch{}
+        // catch here, as this will fail under certain test enviroments
+
+        this.routingServerLocation = (await (await fetch("config.json")).json()).routingServer
+        ;
         var route = await this.api.getRoute({
             uuid: this.uuid
         }, this.authOptions);
-        /*
-        catch(e){
-            if(e instanceof Response){
-                this.$refs.errors.addErrorText((await e.json()).error, true);
-                return
-            }
-
-            throw e;
-        }*/
 
         Object.keys(route).forEach(key => {
             (<any>this)[key] = (<any>route)[key];

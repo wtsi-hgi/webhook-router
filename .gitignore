@@ -109,4 +109,4 @@ db.db
 **/node_modules
 
 # Ignore this as it contains local config
-common/config.json
+**/config.json

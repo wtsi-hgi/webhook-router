@@ -7,6 +7,7 @@ import flask
 from peewee import SqliteDatabase, Database
 from flask_cors import CORS, core
 from http import HTTPStatus
+import json
 
 from .RouteDataMapper import RouteDataMapper
 from .UserLinkDataMapper import UserLinkDataMapper
@@ -23,7 +24,7 @@ class ConfigServer:
     """
     Main class for serving requests
     """
-    def __init__(self, debug: bool, db: Database, auth: Callable[[], str], front_end: str):
+    def __init__(self, debug: bool, db: Database, auth: Callable[[], str], config_JSON: any):
         self._db = db
         self._auth = auth
         proxy_db.initialize(db)
@@ -41,7 +42,7 @@ class ConfigServer:
         )
 
         self.app = connexion.App(__name__, specification_dir=".", debug=debug, server='tornado')
-        CORS(self.app.app, origins=f"{front_end}*")
+        CORS(self.app.app, origins=f"{config_JSON['frontEnd']}*")
 
         self._set_error_handlers()
         self._setup_logging()
@@ -95,14 +96,16 @@ class ConfigServer:
     def close(self):
         self._db.close()
 
-def start_server(debug: bool, port: int, host: str, front_end="http://localhost:8080", client_id: str=None):
+def start_server(debug: bool, port: int, host: str, config_JSON: any):
+    client_id = config_JSON.get("clientId", None)
+
     if not debug and not client_id:
         raise TypeError("server: main(...) - debug=False requires client_id to have a value")
     server = ConfigServer(
         debug=debug,
         db=SqliteDatabase('db.db'),
         auth=test_auth if debug else partial(google_auth, client_id),
-        front_end=front_end
+        config_JSON=config_JSON
     )
 
     logger.info("Server running", extra={
@@ -117,12 +120,14 @@ def main():
     parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
-    parser.add_argument("--front_end", help="Address of the front end", default="http://localhost:8080")
-    parser.add_argument("--client_id", help="Google client ID for oauth authentication")
+    parser.add_argument("--config_JSON", help="Location of a JSON file which contains non secret configuration information", default="config.json")
 
     options = parser.parse_args()
 
-    start_server(options.debug, options.port, options.host, options.front_end, options.client_id)
+    with open(options.config_JSON) as config_file:
+        config_JSON = json.load(config_file)
+
+    start_server(options.debug, options.port, options.host, config_JSON)
 
 if __name__ == "__main__":
     main()

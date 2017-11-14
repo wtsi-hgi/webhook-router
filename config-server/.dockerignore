@@ -110,3 +110,5 @@ todo.todo
 
 Dockerfile
 .dockerignore
+
+config.json

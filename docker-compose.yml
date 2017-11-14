@@ -19,7 +19,8 @@ services:
     depends_on:
       - "elasticsearch"
     networks: [app]
-    env_file: [config.env]
+    volumes:
+      - "./config.json:/config-server/config.json"
   router:
     build: router
     ports:
@@ -29,17 +30,14 @@ services:
       - "configserver"
     networks: [app]
   frontend:
-    build:
-      context: front-end
-      args:
-        - CONFIG_SERVER
-        - ROUTING_SERVER
+    build: front-end
     ports:
       - "8080:80"
     depends_on:
       - "configserver"
     networks: [app]
-    env_file: [config.env]
+    volumes:
+      - "./config.json:/usr/local/apache2/htdocs/config.json"
 networks:
   app:
     ipam:

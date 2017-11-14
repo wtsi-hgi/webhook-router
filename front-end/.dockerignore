@@ -5,3 +5,5 @@ fonts
 
 Dockerfile
 .dockerignore
+
+config.json

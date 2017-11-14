@@ -13,10 +13,14 @@ auth = {
 
 @pytest.fixture()
 def webhook_server():
+    with open("config.json") as config_file:
+        config_JSON = json.load(config_file)
+
     server = ConfigServer(
         debug=True,
         db=SqliteDatabase(':memory:'),
-        auth=test_auth
+        auth=test_auth,
+        config_JSON=config_JSON
     )
     yield server
     server.close()
