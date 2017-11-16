@@ -21,6 +21,11 @@ services:
     networks: [app]
     volumes:
       - "./config.json:/config-server/config.json"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD:
+      POSTGRES_HOST: db
   router:
     build: router
     ports:
@@ -38,6 +43,19 @@ services:
     networks: [app]
     volumes:
       - "./config.json:/usr/local/apache2/htdocs/config.json"
+  db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    networks: [app]
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+        - 8083:8080
+    networks: [app]
 networks:
   app:
     driver_opts:

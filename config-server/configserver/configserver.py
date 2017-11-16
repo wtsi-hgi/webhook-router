@@ -4,10 +4,11 @@ from typing import Type, Callable
 
 import connexion
 import flask
-from peewee import SqliteDatabase, Database
+from peewee import SqliteDatabase, Database, PostgresqlDatabase
 from flask_cors import CORS, core
 from http import HTTPStatus
 import json
+import os
 
 from .RouteDataMapper import RouteDataMapper
 from .UserLinkDataMapper import UserLinkDataMapper
@@ -103,7 +104,12 @@ def start_server(debug: bool, port: int, host: str, config_JSON: any):
         raise TypeError("server: main(...) - debug=False requires client_id to have a value")
     server = ConfigServer(
         debug=debug,
-        db=SqliteDatabase('db.db'),
+        db=SqliteDatabase('db.db') if debug else PostgresqlDatabase(
+            os.environ["POSTGRES_DB"],
+            user=os.environ["POSTGRES_USER"],
+            password=os.environ["POSTGRES_PASSWORD"],
+            host=os.environ["POSTGRES_HOST"]
+        ),
         auth=test_auth if debug else partial(google_auth, client_id),
         config_JSON=config_JSON
     )
