@@ -4,7 +4,6 @@ import net = require("net");
 import https = require("https");
 import os = require("os");
 import axios, {AxiosError} from "axios";
-var ttest = require("ttest");
 
 var configServer: cp.ChildProcess;
 var routerServer: cp.ChildProcess;
