@@ -35,7 +35,9 @@
                     <p>
                         <label for="route-destination">Destination:</label>
                         <input type="url" class="form-control" placeholder="Route Destination"
-                            id="route-destination" required v-model="formData.destination">
+                            id="route-destination" v-model="formData.destination"
+                            required pattern="^(https?):\/\/.*"
+                            title="This must be in the format (http|https)://*">
                     </p>
                     <label for="check-certificates">Don't verify certificates</label>
                     <input type="checkbox" id="check-certificates" class="form-control-inline" v-model="formData.no_ssl_verification">

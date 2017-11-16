@@ -17,15 +17,17 @@
         Create a new route
     </h2>
     <hr>
-    <form @submit.prevent="postForm">
-        <div style="margin-left: 10px">
+    <div style="margin-left: 10px">
+        <form @submit.prevent="postForm">
             <label for="route-name">Name:</label>
             <input type="text" required class="form-control" placeholder="Route Name" 
                 id="route-name" v-model="name" required>
             <br />
             <label for="route-destination">Destination:</label>
             <input type="url" class="form-control" placeholder="Route Destination"
-                id="route-destination" v-model="destination" required>
+                id="route-destination" v-model="destination" 
+                title="This must be in the format (http|https)://*"
+                required pattern="^(https?):\/\/.*">
             <br />
             <label for="check-certificates">Don't verify certificates</label>
             <input type="checkbox" id="check-certificates" class="form-control-inline" v-model="no_ssl_verification">
@@ -34,8 +36,8 @@
             <button type="submit" class="btn btn-outline-success">Create Route</button>
             <button type="reset" @click="cancelForm" class="btn btn-outline-secondary">Cancel</button>
             <br />
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
 </div>
 </template>

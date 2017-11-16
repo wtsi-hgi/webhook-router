@@ -100,14 +100,17 @@ class ConnexionDespatcher:
         return connextion_wrapper
 
     def create_route(self, new_route: object, user: str):
+        acceptable_schemes = ["http", "https"]
+
+        destination = new_route["destination"]
+        
         try:
-            url_ob = urlparse(new_route["destination"])
+            url_ob = urlparse(destination)
         except SyntaxError:
             raise InvalidURLError()
-        if url_ob.scheme == '':
-            destination = "http://" + new_route["destination"]
-        else:
-            destination = new_route["destination"]
+
+        if url_ob.scheme not in acceptable_schemes:
+            raise InvalidURLError()
 
         route = self._route_data_mapper.add(
             user=user,
