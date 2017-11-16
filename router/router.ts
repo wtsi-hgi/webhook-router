@@ -6,7 +6,7 @@ import httpProxy = require("http-proxy");
 var route = require("router")();
 import argparse = require("argparse");
 import winston = require("winston");
-import Limiter = require("ratelimiter");
+var Limiter = require("ratelimit.js").RateLimit;
 
 winston.remove(winston.transports.Console);
 
@@ -19,7 +19,7 @@ const logger = new winston.Logger({
             filename: "logs.log"
         })
     ]
-})
+});
 
 /** Error code from the config server of an invalid route */
 const INVALID_ROUTE_TOKEN_ERROR = 2;
@@ -28,6 +28,7 @@ const SUCCESS_LOG_CODE = 1;
 
 var writeNotFound = (resp: any) => writeError("404 Not found", 404, resp);
 var writeMethodNotAllowed = (resp: any) => writeError("405 Method Not Allowed", 405, resp);
+var writeTooManyRequests = (resp: any) => writeError("429 Too Many Requests", 429, resp);
 var writeInternalError = (resp: any) => writeError("500 Internal server error", 500, resp);
 var writeBadGateway = (resp: any) => writeError("502 Bad Gateway", 502, resp);
 
@@ -96,6 +97,14 @@ class RoutingError extends AbstractRouterError{
     writeHttpResponse = writeBadGateway;
 }
 
+class TooManyRequestsError extends AbstractRouterError{
+    constructor(uuid: string){
+        super(`Too many requests issued. Only ${RATE_LIMIT} requests are allowed per second`, {uuid});
+    }
+
+    writeHttpResponse = writeTooManyRequests;
+}
+
 export interface Route {
     "name": string;
     "destination": string;
@@ -157,6 +166,26 @@ function delay(time: number){
     })
 }
 
+const RATE_LIMIT = 30;
+
+var limitTable = new Map<string, number>();
+setInterval(() => {
+    for(let [key, _] of limitTable){
+        limitTable.set(key, 0);
+    }
+}, 1000);
+
+function isRateLimited(uuid: string){
+    if(limitTable.has(uuid)){
+        limitTable.set(uuid, 1);
+    }
+    else{
+        limitTable.set(uuid, <number>limitTable.get(uuid) + 1)
+    }
+    
+    return <number>limitTable.get(uuid) < RATE_LIMIT
+}
+
 route.all("/:token", (request: http.IncomingMessage & {params: any}, response: http.ServerResponse) => {
     let token = request.params.token;
 
@@ -168,9 +197,13 @@ route.all("/:token", (request: http.IncomingMessage & {params: any}, response: h
                 throw new RouteMethodNotAllowed(route.uuid, request.method || "<METHOD MISSING>");
             }
 
+            if(isRateLimited(route.uuid)){
+                throw new TooManyRequestsError(route.uuid);
+            }
+
             let routePromise = routeRequest(request, response, route);
+
             // Warn if the request takes longer than a timeout
-            
             let timeoutSymbol = Symbol("timeout");
             
             if(await Promise.race([

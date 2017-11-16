@@ -1,13 +1,14 @@
 import cp = require("child_process");
 import http = require("http");
+import net = require("net");
 import https = require("https");
 import os = require("os");
 import axios, {AxiosError} from "axios";
-import _ = require("lodash");
 var ttest = require("ttest");
 
 var configServer: cp.ChildProcess;
 var routerServer: cp.ChildProcess;
+var testServer: net.Server;
 
 var [configPort, routerPort, receiverPort] = [8080, 8081, 8082];
 
@@ -22,6 +23,9 @@ beforeAll(async () => {
         [], {shell: true});
     routerServer = cp.spawn(`node ./router.js --port ${routerPort} --host 127.0.0.1 --configServer http://127.0.0.1:${configPort}`,
         [], {shell: true});
+    testServer = http.createServer((req, res) => {
+        res.end("response");
+    }).listen(receiverPort, "127.0.0.1");
     await delay(5000);
 }, 5500)
 
@@ -45,15 +49,9 @@ async function testRoutingToAddress(location: string, options = {}){
 }
 
 it("Routes to test server", async () => {
-    let server = http.createServer((req, res) => {
-        res.end("response");
-    }).listen(receiverPort, "127.0.0.1");
-
     let resp = await testRoutingToAddress(`http://127.0.0.1:${receiverPort}`)
 
     expect(resp.data).toBe("response");
-
-    server.close()
 })
 
 describe("no_ssl_verification", () => {
@@ -130,7 +128,7 @@ async function promiseMap<InputType, OutputType>(array: InputType[], promise: (i
 }
 
 it("can route at least 5 routes per second", async () => {
-    let token = await createRoute("http://httpbin.org/post");
+    let token = await createRoute(`http://127.0.0.1:${receiverPort}`);
 
     let timeTaken = await time(async () => {
         for(var i = 0;i < 5;i++){
@@ -141,7 +139,17 @@ it("can route at least 5 routes per second", async () => {
     expect(timeTaken).toBeLessThan(1000);
 })
 
+it("rate limits requests", async () => {
+    let token = await createRoute(`http://127.0.0.1:${receiverPort}`);
+    let responses = await Promise.all(Array.from(Array(60).keys()).map(_ => axios.post(`http://127.0.0.1:${routerPort}/${token}`, undefined, {
+        validateStatus: () => true // get the status codes back
+    })));
+
+    expect(responses.map(x => x.status)).toContain(429 /*= Too Many Requests*/)
+})
+
 afterAll(() => {
     configServer.kill();
     routerServer.kill();
+    testServer.close();
 })
