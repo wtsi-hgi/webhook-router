@@ -2,6 +2,7 @@
 
 import flask
 from .errors import *
+import functools
 
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -23,9 +24,10 @@ def google_auth(google_oauth_clientID: str):
 
     if token is None:
         raise InvalidCredentialsError()
-
+    
     try:
-        token_info = id_token.verify_oauth2_token(token, requests.Request(), google_oauth_clientID)
+        req_timeout = functools.partial(requests.Request(), timeout=3)
+        token_info = id_token.verify_oauth2_token(token, req_timeout, google_oauth_clientID)
     except ValueError as e:
         raise InvalidCredentialsError() from e
 
