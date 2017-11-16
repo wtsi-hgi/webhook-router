@@ -27,9 +27,11 @@
     "webpack": "^3.8.1"
   },
   "dependencies": {
+    "@types/fuse": "^2.5.2",
     "bootstrap": "^4.0.0-beta.2",
     "browser-unhandled-rejection": "^1.0.1",
     "css-loader": "^0.28.7",
+    "fuse.js": "^3.2.0",
     "gapi-client": "0.0.3",
     "isomorphic-fetch": "^2.2.1",
     "jquery": "^3.2.1",

@@ -9,8 +9,8 @@
             <button type="button" class="btn btn-outline-secondary"><span class="oi oi-plus"></span> Add Existing Route</button>
         </router-link>
         <span class="mr-auto"></span><!--Move the other elements to the left-->
-        <!--<input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search" aria-label="Search">
-        <span class="divider" innerHTML="&nbsp;"></span>-->
+        <input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search" v-model="searchBar" aria-label="Search">
+        <span class="divider" innerHTML="&nbsp;"></span>
         <slot name="logoutButton"></slot>
     </whr-navbar>
     <slot name="errors"></slot>
@@ -29,19 +29,20 @@
             </tr>
         </thead>
         <tbody>
-        <tr @click="onRouteClick(route.uuid)" :key="route.token" v-for="route in filteredRoutes">
-            <td>
-                <span>{{ route.name }}</span>
-            </td>
-            <td>
-                <code>{{ route.token }}</code>
-            </td>
-            <td>
-                {{ route.destination }}
-            </td>
-        </tr>
+            <tr @click="onRouteClick(route.uuid)" :key="route.token" v-for="route in filteredRoutes">
+                <td>
+                    <span>{{ route.name }}</span>
+                </td>
+                <td>
+                    <code>{{ route.token }}</code>
+                </td>
+                <td>
+                    {{ route.destination }}
+                </td>
+            </tr>
         </tbody>
     </table>
+    <p v-if="filteredRoutes.length == 0" class="lead text-muted" style="text-align: center;">No routes to display</p>
 </div>
 </template>
 
@@ -56,13 +57,6 @@
 
 #search {
     width: 200px;
-    transition-property: width;
-    transition-duration: 0.2s;
-}
-
-#search:focus{
-    width: 300px;
-    
 }
 </style>
 
@@ -72,6 +66,7 @@ import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
 import NavBarComponent from "./whr-navbar.vue";
 import * as utils from "../utils";
+import * as Fuse from "fuse.js";
 
 @Component({
     components: {
@@ -83,10 +78,13 @@ import * as utils from "../utils";
     }
 })
 export default class extends Vue {
-    errorText = ""
-    filteredRoutes:swaggerAPI.Routes = []
-    loaded = false
+    routes: swaggerAPI.Routes = []
+
+    loaded = false;
+
     googleToken: string;
+    searchBar = ""
+    
     readonly authOptions = utils.getAuthOptions(this.googleToken);
 
     api: swaggerAPI.DefaultApi;
@@ -95,8 +93,21 @@ export default class extends Vue {
         var routes = await this.api.getAllRoutes(this.authOptions);
 
         this.loaded = true;
-        this.filteredRoutes = routes;
-        
+        this.routes = routes;
+    }
+
+
+    get filteredRoutes(){
+        if(this.searchBar == ""){
+            return this.routes;
+        }
+        else{
+            let fuse = new Fuse(this.routes, {
+                keys: ["name", "destination"]
+            });
+
+            return fuse.search(this.searchBar);
+        }
     }
 
     onRouteClick(uuid: string){
