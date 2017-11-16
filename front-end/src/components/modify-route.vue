@@ -18,8 +18,10 @@
             <span>
                 Route: "{{savedData.name}}"
             </span>
-            <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm"
-                id="deleteButton" style="margin-left: 10px; ">Delete Route</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm" style="margin-left: 10px; ">
+                Delete Route</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#removeConfirm">
+                Remove from my routes</button>
         </h2>
         <hr>
         <div class="form-section">
@@ -98,6 +100,27 @@
     </div>
 </div>
 
+<div class="modal fade" id="removeConfirm" tabindex="-1" role="dialog" aria-labelledby="removeConfirmLabel" aria-hidden="true" ref="removeModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="removeConfirmLabel">Confirm route removal</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            Are you sure you want to remove "{{savedData.name}}" from your routes?
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-danger" @click="removeRoute">Remove Route</button>
+        </div>
+        </div>
+    </div>
+</div>
+
+
 <div class="modal fade" id="regenerateConfirm" tabindex="-1" role="dialog" aria-labelledby="regenerateConfirmLabel" aria-hidden="true" ref="regenerateModal">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -117,7 +140,7 @@
             <button type="button" class="btn btn-danger" data-dismiss="modal" @click="regenerateToken">Regenerate Token</button>
         </div>
         </div>
-    </div>
+</div>
 </div>
 </div>
 </div>
@@ -162,6 +185,7 @@ export default class extends Vue {
     routingServerLocation = "";
     $refs: {
         deleteModal: HTMLElement;
+        removeModal: HTMLElement;
         regenerateModal: HTMLElement;
     }
 
@@ -212,6 +236,21 @@ export default class extends Vue {
         }
         finally{
             await utils.closeModal(this.$refs.deleteModal);
+        }
+
+        if(success){
+            this.$router.push("/");
+        }
+    }
+
+    async removeRoute(){
+        let success = false;
+        try {
+            await this.api.deleteRouteLink({uuid: this.uuid}, this.authOptions);
+            success = true;
+        }
+        finally{
+            await utils.closeModal(this.$refs.removeModal);
         }
 
         if(success){
