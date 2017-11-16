@@ -253,14 +253,8 @@ export default class extends Vue {
     }
 
     async mounted() {
-        try{
-            await this.displayRouteErrors();
-        }
-        catch{}
-        // catch here, as this will fail under certain test enviroments
+        this.routingServerLocation = (await (await fetch("config.json")).json()).routingServer;
 
-        this.routingServerLocation = (await (await fetch("config.json")).json()).routingServer
-        ;
         var route = await this.api.getRoute({
             uuid: this.uuid
         }, this.authOptions);
@@ -272,7 +266,13 @@ export default class extends Vue {
         this.formData = route;
         this.savedData = cloneDeep(this.formData);
 
-        this.loaded = true;
+        try{
+            await this.displayRouteErrors();
+        }
+        finally{
+            // load the bits that we can load
+            this.loaded = true;
+        }
     }
 }
 </script>
