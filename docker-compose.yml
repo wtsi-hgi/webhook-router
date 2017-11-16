@@ -40,7 +40,9 @@ services:
       - "./config.json:/usr/local/apache2/htdocs/config.json"
 networks:
   app:
+    driver_opts:
+      com.docker.network.driver.mtu: 1400
     ipam:
       driver: default
       config:
-        - subnet: 11.10.11.1/22
+        - subnet: 10.11.0.1/22
