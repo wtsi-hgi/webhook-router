@@ -107,6 +107,3 @@ venv.bak/
 db.db
 
 **/node_modules
-
-# Ignore this as it contains local config
-**/config.json
