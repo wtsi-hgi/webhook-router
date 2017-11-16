@@ -16,7 +16,7 @@
     <div v-show="loaded">
         <h2>
             <span>
-                Route: "{{savedData.name}}"
+                Route: "{{configServerFormData.name}}"
             </span>
             <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm" style="margin-left: 10px; ">
                 Delete Route</button>
@@ -28,24 +28,9 @@
             <h4>Configuration</h4>
             <hr>
             <div class="form-section">
-                <form @submit.prevent="postForm">
-                    <p>
-                        <label for="route-name">Name:</label>
-                        <input type="text" required class="form-control" placeholder="Route Name" 
-                            id="route-name" required v-model="formData.name">
-                    </p>
-                    <p>
-                        <label for="route-destination">Destination:</label>
-                        <input type="url" class="form-control" placeholder="Route Destination"
-                            id="route-destination" v-model="formData.destination"
-                            required pattern="^(https?):\/\/.*"
-                            title="This must be in the format (http|https)://*">
-                    </p>
-                    <label for="check-certificates">Don't verify certificates</label>
-                    <input type="checkbox" id="check-certificates" class="form-control-inline" v-model="formData.no_ssl_verification">
-                    <br />
-                    <button type="submit" class="btn btn-outline-success" :disabled="!modified">Save Changes</button>
-                </form>
+                <route-details-form @formModified="formModified" v-if="loaded" @formSubmitted="postForm" :squashed="true" :initalData="configServerFormData">
+                    <button type="submit" slot="submitButton" slot-scope="props" :disabled="props.disableButton" class="btn btn-outline-success">Save Changes</button>
+                </route-details-form>
             </div>
             <h4>References</h4>
             <hr>
@@ -90,7 +75,7 @@
             </button>
         </div>
         <div class="modal-body">
-            Are you sure you want to delete "{{savedData.name}}"?
+            Are you sure you want to delete "{{configServerFormData.name}}"?
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -110,7 +95,7 @@
             </button>
         </div>
         <div class="modal-body">
-            Are you sure you want to remove "{{savedData.name}}" from your routes?
+            Are you sure you want to remove "{{configServerFormData.name}}" from your routes?
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -131,7 +116,7 @@
             </button>
         </div>
         <div class="modal-body">
-            Are you sure you want to regenerate the token of "{{savedData.name}}"?
+            Are you sure you want to regenerate the token of "{{configServerFormData.name}}"?
             <br />
             <small>Regenerating tokens will break all links to this route.</small>
         </div>
@@ -159,7 +144,8 @@ import Component from 'vue-class-component'
 import NavBarComponent from "./whr-navbar.vue";
 import ErrorsComponent from "./errors.vue";
 import * as utils from "../utils";
-import {isEqual, cloneDeep} from "lodash";
+import {isEqual, cloneDeep, property, pick} from "lodash";
+import RouteDetailsForm from "./route-details-form.vue";
 
 @Component({
     props: {
@@ -169,7 +155,8 @@ import {isEqual, cloneDeep} from "lodash";
     },
     components: {
         "whr-navbar": NavBarComponent,
-        "errors": ErrorsComponent
+        "errors": ErrorsComponent,
+        "route-details-form": RouteDetailsForm
     }
 })
 export default class extends Vue {
@@ -189,6 +176,8 @@ export default class extends Vue {
         regenerateModal: HTMLElement;
     }
 
+    formModified = false
+
     /**
      * State for statistics
      */
@@ -197,35 +186,20 @@ export default class extends Vue {
     errorLogs = "";
 
     /**
-     * Model for the form for modification of routes
+     * Data structure containing the data that is currently stored in
+     * the config server (populated on mount), that is used in the details form
      */
-    formData = {
-        name: "",
-        destination: "",
-        no_ssl_verification: false
-    }
-
-    /**
-     * Data structure containing the data that is currently stored, for
-     * computing when the form is modified
-     */
-    savedData = {
-        ...this.formData
-    };
+    configServerFormData = utils.defaultFormData;
 
     readonly authOptions = utils.getAuthOptions(this.googleToken);
 
-    get modified () {
-        return this.loaded && !isEqual(this.formData, this.savedData)
-    }
-
-    async postForm(){
+    async postForm(formData: any){
         let patchResult = await this.api.patchRoute({
             uuid: this.uuid,
-            newInfo: this.formData
+            newInfo: formData
         }, this.authOptions);
 
-        this.savedData = cloneDeep(this.formData);
+        this.configServerFormData = cloneDeep(formData);
     }
 
     async deleteRoute() {
@@ -298,12 +272,10 @@ export default class extends Vue {
             uuid: this.uuid
         }, this.authOptions);
 
-        Object.keys(route).forEach(key => {
-            (<any>this)[key] = (<any>route)[key];
-        })
+        this.uuid = route.uuid;
+        this.token = route.token;
 
-        this.formData = route;
-        this.savedData = cloneDeep(this.formData);
+        this.configServerFormData = <any>pick(route, Object.keys(utils.defaultFormData));
 
         try{
             await this.displayRouteErrors();

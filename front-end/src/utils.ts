@@ -29,3 +29,12 @@ export function getAuthOptions(googleToken: string){
         }
     }
 }
+
+/**
+ * The default data for showing details of forms to users
+ */
+export var defaultFormData = {
+    name: "",
+    destination: "",
+    no_ssl_verification: false
+}
