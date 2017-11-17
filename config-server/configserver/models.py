@@ -29,7 +29,7 @@ def get_route_json(route: Route):
 
 class UserLink(Model):
     user = CharField()
-    route = ForeignKeyField(Route, to_field="uuid")
+    route = ForeignKeyField(Route, to_field="uuid", on_delete="CASCADE")
 
     class Meta:
         database = proxy_db

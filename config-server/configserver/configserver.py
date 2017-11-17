@@ -97,6 +97,15 @@ class ConfigServer:
     def close(self):
         self._db.close()
 
+def get_postgres_db():
+    return PostgresqlDatabase(
+            os.environ["POSTGRES_DB"],
+            user=os.environ["POSTGRES_USER"],
+            password=os.environ["POSTGRES_PASSWORD"],
+            host=os.environ["POSTGRES_HOST"],
+            autorollback=True
+        )
+
 def start_server(debug: bool, port: int, host: str, config_JSON: any):
     client_id = config_JSON.get("clientId", None)
 
@@ -104,12 +113,7 @@ def start_server(debug: bool, port: int, host: str, config_JSON: any):
         raise TypeError("server: main(...) - debug=False requires client_id to have a value")
     server = ConfigServer(
         debug=debug,
-        db=SqliteDatabase('db.db') if debug else PostgresqlDatabase(
-            os.environ["POSTGRES_DB"],
-            user=os.environ["POSTGRES_USER"],
-            password=os.environ["POSTGRES_PASSWORD"],
-            host=os.environ["POSTGRES_HOST"]
-        ),
+        db=SqliteDatabase('db.db') if debug else get_postgres_db(),
         auth=test_auth if debug else partial(google_auth, client_id),
         config_JSON=config_JSON
     )
