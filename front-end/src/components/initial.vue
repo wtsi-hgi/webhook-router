@@ -147,6 +147,7 @@ export default class extends Vue {
     }
     
     async mounted() {
+        this.progressBar.start();
         window.addEventListener("unhandledrejection", async (e) => {
             this.$refs.errors.addError(await this.getErrorString((<any>e).reason));
         })
@@ -164,6 +165,7 @@ export default class extends Vue {
                 scope: 'profile',
                 hosted_domain: "sanger.ac.uk"
             }).then(auth => {
+                this.progressBar.end();
                 this.auth = auth;
                 if(this.auth.isSignedIn.get()){
                     let authResponse = this.auth.currentUser.get().getAuthResponse();
