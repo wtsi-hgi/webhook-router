@@ -1,0 +1,25 @@
+version: '3'
+services:
+  frontend:
+    build:
+      dockerfile: ./dev.Dockerfile
+    volumes:
+      - ./front-end:/front-end
+      - "./config.json:/front-end/config.json"
+    stdin_open: true
+    tty: true
+  configserver:
+    volumes:
+      - ./config-server:/config-server
+    environment:
+      POSTGRES_PASSWORD: a_password
+    stdin_open: true
+    tty: true
+  router:
+    volumes:
+      - ./router:/router
+    stdin_open: true
+    tty: true
+  db:
+    environment:
+      POSTGRES_PASSWORD: a_password
