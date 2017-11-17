@@ -154,6 +154,9 @@ export default class extends Vue {
         let configJSON = (await (await fetch("config.json")).json());
         this.api = new swaggerAPI.DefaultApi(this.fetchWrapper.bind(this), configJSON.configServer);
 
+        // let google tell us when it's loaded (look in index.html for the definition of this)
+        await (<any>window).gapiLoadPromise;
+
         gapi.load('auth2', () => {
             gapi.auth2.init({
                 client_id: configJSON.clientId,

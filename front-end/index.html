@@ -10,7 +10,14 @@
 <body>
     <div id="site">
     </div>
-    <script src="https://apis.google.com/js/platform.js"></script>
+    <script>
+        window.gapiLoadPromise = new Promise((fulfil, reject) => {
+            window.gapiLoaded = () => {
+                fulfil();
+            }
+        });
+    </script>
+    <script src="https://apis.google.com/js/platform.js?onload=gapiLoaded"></script>
     <script src="./bundle.js"></script>
 </body>
 
