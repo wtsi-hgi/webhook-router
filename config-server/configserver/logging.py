@@ -47,7 +47,7 @@ class ConfigServerLogger:
             "ip": request.remote_addr,
             "user_agent": str(request.user_agent),
             "status_code": response.status_code,
-            "body": response.data.decode()
+            "body": response.get_data(as_text=True)
         })
 
     
