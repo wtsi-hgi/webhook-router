@@ -83,9 +83,9 @@ class RouteDataMapper:
             token=token,
             token_id=token_id)
 
-        self._user_link_datamapper.add_user_link(user, route_uuid)
-
         route.save()
+
+        self._user_link_datamapper.add_user_link(user, route_uuid)
 
         return get_route_json(route)
 

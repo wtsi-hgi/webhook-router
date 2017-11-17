@@ -4,6 +4,7 @@
   "description": "",
   "main": "bundle.js",
   "scripts": {
+    "dev": "webpack-dev-server",
     "gen-api": "swagger-codegen generate -i ../config-server/swagger.yaml -l typescript-fetch -o src --additional-properties supportsES6=True --additional-properties modelPropertyNaming=original",
     "build": "NODE_ENV='production' webpack"
   },
@@ -24,7 +25,8 @@
     "vue-loader": "^13.5.0",
     "vue-style-loader": "^3.0.3",
     "vue-template-compiler": "^2.5.3",
-    "webpack": "^3.8.1"
+    "webpack": "^3.8.1",
+    "webpack-dev-server": "^2.9.4"
   },
   "dependencies": {
     "@types/fuse": "^2.5.2",

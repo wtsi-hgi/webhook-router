@@ -176,14 +176,14 @@ setInterval(() => {
 }, 1000);
 
 function isRateLimited(uuid: string){
-    if(limitTable.has(uuid)){
+    if(!limitTable.has(uuid)){
         limitTable.set(uuid, 1);
     }
     else{
         limitTable.set(uuid, <number>limitTable.get(uuid) + 1)
     }
     
-    return <number>limitTable.get(uuid) < RATE_LIMIT
+    return <number>limitTable.get(uuid) > RATE_LIMIT
 }
 
 route.all("/:token", (request: http.IncomingMessage & {params: any}, response: http.ServerResponse) => {

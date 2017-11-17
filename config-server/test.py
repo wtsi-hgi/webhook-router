@@ -33,7 +33,7 @@ def router_app(webhook_server):
 def test_route_uuid(webhook_server: ConfigServer) -> str:
     new_route = webhook_server.depatcher.resolve_name("create_route")({
         "name": "route",
-        "destination": "127.0.0.1"
+        "destination": "http://127.0.0.1"
     })
     
     return new_route[0]["uuid"]
@@ -43,7 +43,7 @@ def test_create_route(router_app: FlaskClient):
         "/create-route",
         data=json.dumps({
             "name": "route",
-            "destination": "127.0.0.1"
+            "destination": "http://127.0.0.1"
         }),
         content_type='application/json',
         **auth

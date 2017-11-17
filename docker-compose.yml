@@ -3,8 +3,8 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:5.6.3
     networks: [app]
-    ports:
-      - "9200:9200"
+    expose:
+      - "9200"
   kibana:
     image: docker.elastic.co/kibana/kibana:5.6.3
     depends_on:
@@ -50,6 +50,10 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
     networks: [app]
+    volumes:
+      - pgdata:/var/lib/postgresql
+    expose:
+      - "5432"
   adminer:
     image: adminer
     restart: always
@@ -64,3 +68,5 @@ networks:
       driver: default
       config:
         - subnet: 10.11.0.1/22
+volumes:
+  pgdata:

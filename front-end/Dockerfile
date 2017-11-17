@@ -4,7 +4,7 @@
 FROM node:8.9 AS build
 LABEL maintainer="th10@sanger.ac.uk"
 
-# Install dependencies and http-server
+# Install dependencies
 
 ADD package.json /front-end/package.json
 ADD package-lock.json /front-end/package-lock.json
@@ -14,11 +14,6 @@ RUN npm install
 # Add code files
 
 ADD . /front-end
-
-# Specify the configuration variables
-
-ARG CONFIG_SERVER
-ARG ROUTING_SERVER
 
 # Build the files
 

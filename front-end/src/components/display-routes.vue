@@ -14,35 +14,37 @@
         <slot name="logoutButton"></slot>
     </whr-navbar>
     <slot name="errors"></slot>
-    <table v-show="loaded" class="table table-hover table-striped">
-        <thead>
-            <tr>
-                <th width="20%">
-                    Name
-                </th>
-                <th width="30%">
-                    Token
-                </th>
-                <th>
-                    Destination
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr @click="onRouteClick(route.uuid)" :key="route.token" v-for="route in filteredRoutes">
-                <td>
-                    <span>{{ route.name }}</span>
-                </td>
-                <td>
-                    <code>{{ route.token }}</code>
-                </td>
-                <td>
-                    {{ route.destination }}
-                </td>
-            </tr>
-        </tbody>
-    </table>
-    <p v-if="filteredRoutes.length == 0" class="lead text-muted" style="text-align: center;">No routes to display</p>
+    <div v-show="loaded">
+        <table class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th width="20%">
+                        Name
+                    </th>
+                    <th width="30%">
+                        Token
+                    </th>
+                    <th>
+                        Destination
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr @click="onRouteClick(route.uuid)" :key="route.token" v-for="route in filteredRoutes">
+                    <td>
+                        <span>{{ route.name }}</span>
+                    </td>
+                    <td>
+                        <code>{{ route.token }}</code>
+                    </td>
+                    <td>
+                        {{ route.destination }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <p v-if="filteredRoutes.length == 0" class="lead text-muted" style="text-align: center;">No routes to display</p>
+    </div>
 </div>
 </template>
 
@@ -92,8 +94,8 @@ export default class extends Vue {
     async mounted(){
         var routes = await this.api.getAllRoutes(this.authOptions);
 
-        this.loaded = true;
         this.routes = routes;
+        this.loaded = true;
     }
 
 

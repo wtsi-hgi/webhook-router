@@ -8,11 +8,11 @@
         <signin @signedIn="token => login(token)"></signin>
         <errors ref="errors" slot="errors"></errors>
     </div>
+    <!--Setting the key as below reloads the page on path change-->
     <router-view v-else class="view" :key="$route.fullPath" :googleToken="googleToken" :api="api">
         <button type="button" class="btn btn-outline-warning" slot="logoutButton" @click="logout">Logout</button>
         <errors ref="errors" slot="errors"></errors>
     </router-view>
-    <!--Setting the key as above reloads the page on path change-->
 </div>
 </template>
 <script lang="ts">
@@ -120,18 +120,27 @@ export default class extends Vue {
         })
     }
 
-    async getErrorString(e: any){
-        let errorText = e.toString();
+    async getErrorString(error: any){
+        let errorText: string;
 
-        if(e instanceof Response){
+        if(error instanceof Response){
             let respText: string | undefined = undefined;
             try{
-                respText = (await e.json()).error;
+                respText = (await error.json()).error;
             }
             catch{}
 
-            errorText = `Failed to get ${e.url}, ${e.statusText}` + 
+            errorText = `Failed to get ${error.url}, ${error.statusText}` + 
                 (respText == undefined?"":`: ${respText}`)
+        }
+        else if(error instanceof Error){
+            errorText = error.toString()
+        }
+        else if(error instanceof Object){
+            errorText = JSON.stringify(error);
+        }
+        else{
+            errorText = error.toString();
         }
 
         return errorText;

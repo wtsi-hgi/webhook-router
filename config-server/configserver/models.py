@@ -4,7 +4,7 @@ from peewee import Proxy
 proxy_db = Proxy()
 
 class Route(Model):
-    uuid = CharField()
+    uuid = CharField(unique=True)
     name = CharField()
     destination = CharField()
     no_ssl_verification = BooleanField()
