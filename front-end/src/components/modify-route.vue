@@ -53,14 +53,15 @@
             <hr>
             <div class="form-section">
                 {{numSuccesses}} webhook{{numSuccesses == 1?"":"s"}} correctly routed. {{numFailures}} error{{numFailures == 1?"":"s"}}.
-                <div v-show="errorLogs != ''">
-                    <br />
-                    <br />
-                    <h5>Errors:</h5>
+            </div>
+            <br />
+            <div v-show="errorLogs != ''">
+                <h4>Recent Errors</h4>
+                <hr>
+                <div class="form-section">
                     <pre><code>{{errorLogs}}</code></pre>
                 </div>
             </div>
-            <br />
         </div>
     </div>
 </div>
@@ -245,14 +246,17 @@ export default class extends Vue {
             "message",
             "level",
             "@timestamp",
-            "uuid"
+            "uuid",
+            "success"
         ]);
 
         let propertyStr = Object.entries(error)
             .filter(x => !excludeProps.has(x[0]))
-            .map(propPair => `\t${propPair[0]}=${propPair[1]}`)
+            .map(propPair => `\t${propPair[0]}=${propPair[1]}`);
+        
+        let timestamp = (new Date(error["@timestamp"])).toLocaleString()
 
-        return `[${error.level} ${error["@timestamp"]}] ${error.message} \n${propertyStr.join("\n")}`
+        return `[${timestamp}] ${error.level}: ${error.message} \n${propertyStr.join("\n")}`
     }
 
     async displayRouteErrors(){

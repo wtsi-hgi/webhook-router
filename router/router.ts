@@ -223,7 +223,8 @@ route.all("/:token", (request: http.IncomingMessage & {params: any}, response: h
             
             logger.info("Correctly routed", {
                 uuid: route.uuid,
-                destination: route.destination
+                destination: route.destination,
+                success: true
             });
         }
         catch(error){

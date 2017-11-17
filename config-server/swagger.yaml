@@ -68,7 +68,7 @@ paths:
         - googleToken: []
       responses:
         '200':
-          description: Statistics for a given token
+          description: Statistics for a given token, includes the last 10 errors
           schema:
             $ref: "#/definitions/RouteStatistics"
         default:
