@@ -72,7 +72,7 @@
         <div class="modal-header">
             <h5 class="modal-title" id="deleteConfirmLabel">Confirm route deletion</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+            <span aria-hidden="true" v-html="'&times;'"></span>
             </button>
         </div>
         <div class="modal-body">
@@ -92,7 +92,7 @@
         <div class="modal-header">
             <h5 class="modal-title" id="removeConfirmLabel">Confirm route removal</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+            <span aria-hidden="true" v-html="'&times;'"></span>
             </button>
         </div>
         <div class="modal-body">
@@ -113,7 +113,7 @@
         <div class="modal-header">
             <h5 class="modal-title" id="regenerateConfirmLabel">Confirm token regeneration</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+            <span aria-hidden="true" v-html="'&times;'"></span>
             </button>
         </div>
         <div class="modal-body">
