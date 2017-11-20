@@ -1,0 +1,251 @@
+swagger: "2.0"
+info:
+  version: 1.0.0
+  title: Webhook router config
+  license:
+    name: MIT
+paths:
+  /routes/{uuid}:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        description: The uuid of the route
+        type: string
+    delete:
+      summary: Delete the given webhook
+      operationId: delete_route
+      security: 
+        - googleToken: []
+      responses:
+        '204':
+          description: Webhook deleted
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+    get:
+      summary: Gets the configuration for the given webhook
+      operationId: get_route
+      responses:
+        '200':
+          description: The correct webhook
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+    patch:
+      summary: Edit the configuration of the given webhook
+      operationId: patch_route
+      security: 
+        - googleToken: []
+      parameters:
+        - name: new_info
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/PatchRoute"
+      responses:
+        '204':
+          description: Routing patched correctly
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /routes/{uuid}/statistics:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        description: The uuid of the route
+        type: string
+    get:
+      summary: Gets the statistics for a given token
+      operationId: get_route_statistics
+      security: 
+        - googleToken: []
+      responses:
+        '200':
+          description: Statistics for a given token, includes the last 10 errors
+          schema:
+            $ref: "#/definitions/RouteStatistics"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /routes/token/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        description: The token of the route
+        type: string
+    get:
+      summary: Gets a route by it's token. Intended to be used by the router when it receives a request
+      operationId: get_by_token
+      responses:
+        '200':
+          description: Information about the webhook
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /routes/{uuid}/regenerate:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        description: The uuid of the route
+        type: string
+    post:
+      summary: Regenerates the token for the given route
+      operationId: regenerate_token
+      security: 
+        - googleToken: []
+      responses:
+        '200':
+          description: Successful regeneration, returns json data of the new route
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /routes:
+    get:
+      summary: Gets all routes that are configured for given user
+      operationId: get_all_routes
+      responses:
+        '200':
+          description: Returns the given routes
+          schema:
+            $ref: "#/definitions/Routes"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /create-route:
+    post:
+      summary: Creates a new route and adds it to the user's routes
+      operationId: create_route
+      security: 
+        - googleToken: []
+      parameters:
+        - name: new_route
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/NewRoute"
+      responses:
+        '201':
+          description: The new route
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /links/{uuid}:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        description: The uuid of the route
+        type: string
+    post:
+      summary: Adds an existing route to a user's list of routes
+      operationId: add_route_link
+      security: 
+        - googleToken: []
+      responses:
+        '201':
+          description: The existing route
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      summary: Removes a user's link
+      operationId: delete_route_link
+      security:
+        - googleToken: []
+      responses:
+        '204':
+          description: Webhook deleted
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+definitions:
+  NewRoute:
+    required:
+      - name
+      - destination
+    properties:
+      name:
+        type: string
+      destination:
+        type: string
+      no_ssl_verification:
+        type: boolean
+        default: false
+  PatchRoute:
+      properties:
+        name:
+          type: string
+        destination:
+          type: string
+        no_ssl_verification:
+          type: boolean
+  RouteStatistics:
+    required:
+      - num_successes
+      - num_failures
+      - last_failures
+    properties:
+      num_successes:
+        type: integer
+      num_failures:
+        type: integer
+      last_failures:
+        type: array
+        items:
+          type: object
+  Route:
+    allOf:
+      - required:
+          - no_ssl_verification
+          - token
+          - uuid
+        properties:
+          no_ssl_verification:
+            type: boolean
+          token:
+            type: string
+          uuid:
+            type: string
+      - $ref: "#/definitions/NewRoute"
+  Routes:
+    type: array
+    items:
+      $ref: "#/definitions/Route"
+  Error:
+    required:
+      - error
+      - error_num
+    properties:
+      error:
+        type: string
+      error_num:
+        type: string
+securityDefinitions:
+  googleToken:
+    type: apiKey
+    name: Google-Auth-Token
+    in: header

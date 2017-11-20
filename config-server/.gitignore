@@ -106,6 +106,6 @@ venv.bak/
 
 db.db
 
-**/node_modules
-config-server/log-track
-router/log-track
+todo.todo
+
+logs.log

@@ -1,0 +1,24 @@
+<html lang="en">
+        
+<head>
+    <link rel="stylesheet" href="bundle.css" />
+    <link rel="icon" 
+        type="image/png" 
+        href="img/logo.png">
+    <title>Webhook Router</title>
+</head>
+<body>
+    <div id="site">
+    </div>
+    <script>
+        window.gapiLoadPromise = new Promise((fulfil, reject) => {
+            window.gapiLoaded = () => {
+                fulfil();
+            }
+        });
+    </script>
+    <script src="https://apis.google.com/js/platform.js?onload=gapiLoaded"></script>
+    <script src="./bundle.js"></script>
+</body>
+
+</html>
