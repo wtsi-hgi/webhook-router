@@ -28,9 +28,9 @@ const SUCCESS_LOG_CODE = 1;
 
 var writeNotFound = (resp: any) => writeError("404 Not found", 404, resp);
 var writeMethodNotAllowed = (resp: any) => writeError("405 Method Not Allowed", 405, resp);
-var writeTooManyRequests = (resp: any) => writeError("429 Too Many Requests", 429, resp);
 var writeInternalError = (resp: any) => writeError("500 Internal server error", 500, resp);
 var writeBadGateway = (resp: any) => writeError("502 Bad Gateway", 502, resp);
+var writeServiceUnavailable = (resp: any) => writeError("503 Service Unavailable", 503, resp);
 
 function writeError(message: string, code: number, response: http.ServerResponse){
     response.writeHead(code, {
@@ -98,19 +98,20 @@ class RoutingError extends AbstractRouterError{
 }
 
 class TooManyRequestsError extends AbstractRouterError{
-    constructor(uuid: string){
-        super(`Too many requests issued. Only ${RATE_LIMIT} requests are allowed per second`, {uuid});
+    constructor(uuid: string, rate_limit: number){
+        super(`Too many requests issued. Only ${rate_limit} requests are allowed per second`, {uuid});
     }
 
-    writeHttpResponse = writeTooManyRequests;
+    writeHttpResponse = writeServiceUnavailable;
 }
 
 export interface Route {
     "name": string;
     "destination": string;
+    "no_ssl_verification": boolean;
+    "rate_limit": number;
     "token": string;
     "uuid": string;
-    "no_ssl_verification": boolean;
 }
 
 async function getRouteFromToken(token: string){
@@ -175,7 +176,7 @@ setInterval(() => {
     }
 }, 1000);
 
-function isRateLimited(uuid: string){
+function isRateLimited(uuid: string, rateLimit: number){
     if(!limitTable.has(uuid)){
         limitTable.set(uuid, 1);
     }
@@ -197,8 +198,8 @@ route.all("/:token", (request: http.IncomingMessage & {params: any}, response: h
                 throw new RouteMethodNotAllowed(route.uuid, request.method || "<METHOD MISSING>");
             }
 
-            if(isRateLimited(route.uuid)){
-                throw new TooManyRequestsError(route.uuid);
+            if(isRateLimited(route.uuid, route.rate_limit)){
+                throw new TooManyRequestsError(route.uuid, route.rate_limit);
             }
 
             let routePromise = routeRequest(request, response, route);

@@ -13,6 +13,7 @@ import os
 from .RouteDataMapper import RouteDataMapper
 from .UserLinkDataMapper import UserLinkDataMapper
 from .ConnexionDespatcher import ConnexionDespatcher
+from .StatisticQueryier import StatisticQueryier
 from .errors import *
 from .logging import *
 from .auth import *
@@ -34,15 +35,17 @@ class ConfigServer:
 
         user_link_dm = UserLinkDataMapper()
         route_dm = RouteDataMapper(user_link_dm)
+        stat_queryier = StatisticQueryier()
 
         self.depatcher = ConnexionDespatcher(
             self._auth,
             route_dm,
             user_link_dm,
+            stat_queryier,
             logger
         )
 
-        self.app = connexion.App(__name__, specification_dir=".", debug=debug, server='tornado')
+        self.app = connexion.App(__name__, specification_dir=".", server='tornado')
         CORS(self.app.app, origins=f"{config_JSON['frontEnd']}*")
 
         self._set_error_handlers()

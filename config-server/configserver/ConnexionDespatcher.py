@@ -2,11 +2,12 @@ from functools import wraps
 from typing import Type, Callable
 from urllib.parse import urlparse
 from http import HTTPStatus
+import copy
 
 from .RouteDataMapper import RouteDataMapper
 from .UserLinkDataMapper import UserLinkDataMapper
 from .logging import ConfigServerLogger
-from .route_statistics import get_route_stats
+from .StatisticQueryier import StatisticQueryier
 from .errors import *
 
 
@@ -28,6 +29,7 @@ ignore_auth = [
 ]
 
 # Which functions to automatically add status codes to
+# PR for this: https://github.com/zalando/connexion/issues/539
 status_codes = {
     "delete_route": 204,
     "patch_route": 204,
@@ -40,15 +42,17 @@ class ConnexionDespatcher:
     """
     Class, who's main function is resolve_name (see below for docs of that function).
 
-    Dispaches to the RouteDataMapper, UserLinkDataMapper, and get_route_stats.
+    Dispaches to the RouteDataMapper, UserLinkDataMapper, and StatisticQueryier.
     """
     def __init__(self,  auth: Callable[[], str], 
                         route_data_mapper: RouteDataMapper,
                         user_link_data_mapper: UserLinkDataMapper,
+                        statistic_queryier: StatisticQueryier,
                         logger: ConfigServerLogger):
         self._auth = auth
         self._route_data_mapper = route_data_mapper
         self._user_link_data_mapper = user_link_data_mapper
+        self._statistic_queryier = statistic_queryier
         self._logger = logger
 
     def resolve_name(self, name: str):
@@ -100,12 +104,15 @@ class ConnexionDespatcher:
         return connextion_wrapper
 
     def create_route(self, new_route: object, user: str):
+        # Custom validation and replacement for expected behaviour specified in https://github.com/zalando/connexion/issues/351
         acceptable_schemes = ["http", "https"]
 
-        destination = new_route["destination"]
+        new_route = copy.deepcopy(new_route)
+        new_route["no_ssl_verification"]=new_route.get("no_ssl_verification", False)
+        new_route["rate_limit"]=new_route.get("rate_limit", 30)
         
         try:
-            url_ob = urlparse(destination)
+            url_ob = urlparse(new_route["destination"])
         except SyntaxError:
             raise InvalidURLError()
 
@@ -114,11 +121,10 @@ class ConnexionDespatcher:
 
         route = self._route_data_mapper.add(
             user=user,
-            destination=destination,
-            name=new_route["name"],
-            no_ssl_verification=new_route.get("no_ssl_verification", False))
+            **new_route)
 
         return route
+
 
     def add_route_link(self, user: str, uuid: str):
         # This also checks if the uuid exists
@@ -128,8 +134,28 @@ class ConnexionDespatcher:
 
         return route
 
-    def get_route_statistics(self, uuid: str):
+    def get_all_routes_stats(self, user: str):
+        user_routes = self._user_link_data_mapper.get_users_links(user)
+        uuids = [route["uuid"] for route in user_routes]
+
+        if len(uuids) == 0:
+            return []
+
+        stats = self._statistic_queryier.get_many_routes_stats(uuids)
+
+        for (i, stat) in enumerate(stats):
+            stat["uuid"] = uuids[i]
+        
+        return stats
+
+    def get_route_logs(self, uuid: str):
         # make sure the uuid is actually valid
         self._route_data_mapper.get(uuid)
 
-        return get_route_stats(uuid)
+        return self._statistic_queryier.get_route_logs(uuid)
+
+    def get_route_stats(self, uuid: str):
+        # make sure the uuid is actually valid
+        self._route_data_mapper.get(uuid)
+
+        return self._statistic_queryier.get_route_stats(uuid)

@@ -44,12 +44,14 @@ export interface NewRoute {
     "name": string;
     "destination": string;
     "no_ssl_verification"?: boolean;
+    "rate_limit"?: number;
 }
 
 export interface PatchRoute {
     "name"?: string;
     "destination"?: string;
     "no_ssl_verification"?: boolean;
+    "rate_limit"?: number;
 }
 
 export interface RouteStatistics {
@@ -65,6 +67,7 @@ export interface Route {
     "name": string;
     "destination": string;
     "no_ssl_verification": boolean;
+    "rate_limit": number;
     "token": string;
     "uuid": string;
 }

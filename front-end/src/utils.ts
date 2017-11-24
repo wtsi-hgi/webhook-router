@@ -31,10 +31,17 @@ export function getAuthOptions(googleToken: string){
 }
 
 /**
- * The default data for showing details of forms to users
+ * The default data for showing details of forms to users.
+ * The keys of this data structure is also used for determining the data
+ * that will be sent from the form to the server
  */
 export var defaultFormData = {
     name: "",
     destination: "",
     no_ssl_verification: false
 }
+
+/**
+ * Attributes which may be present on a form
+ */
+export var formAttributes = Object.keys(defaultFormData);

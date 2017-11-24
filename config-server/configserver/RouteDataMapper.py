@@ -71,14 +71,12 @@ class RouteDataMapper:
             else:
                 raise InvalidRouteTokenError()
 
-    def add(self, user: str, destination: str, name: str, no_ssl_verification: bool):
+    def add(self, user: str, **kwargs):
         route_uuid = str(uuid.uuid4())
         token, token_id = RouteDataMapper._generate_new_token()
 
         route = Route(
-            destination=destination,
-            name=name,
-            no_ssl_verification=no_ssl_verification,
+            **kwargs,
             uuid=route_uuid,
             token=token,
             token_id=token_id)

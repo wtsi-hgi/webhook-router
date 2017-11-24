@@ -1,7 +1,7 @@
 swagger: "2.0"
 info:
   version: 1.0.0
-  title: Webhook router config
+  title: Webhook router config server
   license:
     name: MIT
 paths:
@@ -184,6 +184,7 @@ paths:
             $ref: "#/definitions/Error"
 definitions:
   NewRoute:
+    type: object
     required:
       - name
       - destination
@@ -195,7 +196,12 @@ definitions:
       no_ssl_verification:
         type: boolean
         default: false
+      rate_limit:
+        type: integer
+        minimum: 0
+        default: 30
   PatchRoute:
+      type: object
       properties:
         name:
           type: string
@@ -203,7 +209,11 @@ definitions:
           type: string
         no_ssl_verification:
           type: boolean
+        rate_limit:
+          type: integer
+          minimum: 0
   RouteStatistics:
+    type: object
     required:
       - num_successes
       - num_failures
@@ -218,6 +228,7 @@ definitions:
         items:
           type: object
   Route:
+    type: object
     allOf:
       - required:
           - no_ssl_verification
@@ -236,6 +247,7 @@ definitions:
     items:
       $ref: "#/definitions/Route"
   Error:
+    type: object
     required:
       - error
       - error_num
