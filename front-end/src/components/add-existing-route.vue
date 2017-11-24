@@ -38,7 +38,7 @@
             <br/>
             <br />
             <button type="submit" class="btn btn-outline-success">Add route</button>
-            <button type="reset" @click="cancelForm" class="btn btn-outline-secondary">Cancel</button>
+            <button type="reset" @click="cancelForm" class="btn btn-outline-secondary">Back</button>
             <br />
         </div>
     </form>

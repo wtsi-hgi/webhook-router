@@ -9,7 +9,7 @@
             <button type="button" class="btn btn-outline-secondary"><span class="oi oi-plus"></span> Add Existing Route</button>
         </router-link>
         <span class="mr-auto"></span><!--Move the other elements to the left-->
-        <input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search" v-model="searchBar" aria-label="Search">
+        <input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search routes" v-model="searchBar" aria-label="Search">
         <span class="divider" innerHTML="&nbsp;"></span>
         <slot name="logoutButton"></slot>
     </whr-navbar>

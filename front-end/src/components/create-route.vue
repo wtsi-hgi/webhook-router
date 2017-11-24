@@ -20,7 +20,7 @@
     <div style="margin-left: 10px">
         <route-details-form @formSubmitted="postForm" :squashed="false">
             <button type="submit" slot="submitButton" slot-scope="props" :disabled="props.disableButton" class="btn btn-outline-success">Create Route</button>
-            <button type="reset" slot="cancelButton" @click="cancelForm" class="btn btn-outline-secondary">Cancel</button>
+            <button type="reset" slot="cancelButton" @click="cancelForm" class="btn btn-outline-secondary">Back</button>
         </route-details-form>
     </div>
 </div>
