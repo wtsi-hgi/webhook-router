@@ -145,11 +145,21 @@ export default class extends Vue {
 
         return errorText;
     }
+
+    onError(errorText: string){
+        this.$refs.errors.addError(errorText);
+
+        this.progressBar.end();
+    }
     
     async mounted() {
         this.progressBar.start();
         window.addEventListener("unhandledrejection", async (e) => {
-            this.$refs.errors.addError(await this.getErrorString((<any>e).reason));
+            this.onError(await this.getErrorString((<any>e).reason));
+        })
+        
+        window.addEventListener("error", async (e) => {
+            this.onError(await this.getErrorString(e));
         })
 
         let configJSON = (await (await fetch("config.json")).json());
