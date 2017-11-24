@@ -45,9 +45,10 @@
                     </td>
                     <td>
                         <span>{{ route.stats.successes }}</span>
-                        <span style="color:green" class="oi oi-check"></span>
-                        <span style="margin-left: 5px">{{ route.stats.failures }}</span>
-                        <span style="color:red" class="oi oi-x"></span>
+                        <span class="oi oi-check text-success"></span>
+                        <span class="routeDivider" v-html="'&nbsp;'"></span>
+                        <span>{{ route.stats.failures }}</span>
+                        <span class="oi oi-x text-danger"></span>
                     </td>
                 </tr>
             </tbody>
@@ -67,6 +68,13 @@
     border-left-width: 1px;
     margin-left: 0px;
     margin-right: 5px;
+}
+
+.routeDivider{
+    border-left-style: solid;
+    border-left-color: rgba(0, 0, 0, 0.2);
+    border-left-width: 1px;
+    margin-left: 4px;
 }
 
 #search {
