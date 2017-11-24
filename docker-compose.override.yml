@@ -10,6 +10,7 @@ services:
     tty: true
   configserver:
     volumes:
+      - "./config.json:/config-server/config.json"
       - ./config-server:/config-server
     environment:
       POSTGRES_PASSWORD: a_password
@@ -23,3 +24,4 @@ services:
   db:
     environment:
       POSTGRES_PASSWORD: a_password
+
