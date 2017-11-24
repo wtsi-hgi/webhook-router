@@ -38,6 +38,7 @@ import Component from 'vue-class-component'
 import NavBarComponent from "./whr-navbar.vue";
 import RouteDetailsForm from "./route-details-form.vue";
 import * as utils from "../utils";
+import { pick } from "lodash";
 
 @Component({
     components: {
@@ -57,11 +58,7 @@ export default class extends Vue {
 
     async postForm(data: any){
         await this.api.createRoute({
-            newRoute: {
-                destination: data.destination,
-                name: data.name,
-                no_ssl_verification: data.no_ssl_verification
-            }
+            newRoute: <any>pick(data, utils.formAttributes)
         }, this.authOptions)
 
         this.$router.push("/");

@@ -52,7 +52,7 @@
             <h4>Statistics</h4>
             <hr>
             <div class="form-section">
-                {{numSuccesses}} webhook{{numSuccesses == 1?"":"s"}} correctly routed. {{numFailures}} error{{numFailures == 1?"":"s"}}.
+                {{stats.successes}} webhook{{stats.successes == 1?"":"s"}} correctly routed. {{stats.failures}} error{{stats.failures == 1?"":"s"}}.
             </div>
             <br />
             <div v-show="errorLogs != ''">
@@ -182,8 +182,10 @@ export default class extends Vue {
     /**
      * State for statistics
      */
-    numSuccesses = 0;
-    numFailures = 0;
+    stats = {
+        successes: 0,
+        failures: 0
+    }
     errorLogs = "";
 
     /**
@@ -259,19 +261,21 @@ export default class extends Vue {
         return `[${timestamp}] ${error.level}: ${error.message} \n${propertyStr.join("\n")}`
     }
 
-    async displayRouteErrors(){
-        var stats = await this.api.getRouteStatistics({
-            uuid: this.uuid
-        }, this.authOptions);
+    async displayRouteStats(){
+        let [stats, logs] = await Promise.all([
+            await this.api.getRouteStats({
+                uuid: this.uuid
+            }, this.authOptions),
+            await this.api.getRouteLogs({
+                uuid: this.uuid
+            }, this.authOptions)
+        ])
 
-        this.numSuccesses = stats.num_successes;
-        this.numFailures = stats.num_failures;
-        this.errorLogs = stats.last_failures.map(x => this.formatError(x)).join("\n");
+        this.stats = stats;
+        this.errorLogs = logs.map(x => this.formatError(x)).join("\n");
     }
 
-    async mounted() {
-        this.routingServerLocation = (await (await fetch("config.json")).json()).routingServer;
-
+    async getRouteInfo(){
         var route = await this.api.getRoute({
             uuid: this.uuid
         }, this.authOptions);
@@ -279,10 +283,14 @@ export default class extends Vue {
         this.uuid = route.uuid;
         this.token = route.token;
 
-        this.configServerFormData = <any>pick(route, Object.keys(utils.defaultFormData));
+        this.configServerFormData = <any>pick(route, utils.formAttributes);
+    }
+
+    async mounted() {
+        this.routingServerLocation = (await (await fetch("config.json")).json()).routingServer;
 
         try{
-            await this.displayRouteErrors();
+            await Promise.all([this.getRouteInfo(), this.displayRouteStats()]);
         }
         finally{
             // load the bits that we can load

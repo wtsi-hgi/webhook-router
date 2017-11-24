@@ -63,7 +63,7 @@ paths:
         type: string
     get:
       summary: Gets the statistics for a given token
-      operationId: get_route_statistics
+      operationId: get_route_stats
       security: 
         - googleToken: []
       responses:
@@ -71,6 +71,27 @@ paths:
           description: Statistics for a given token, includes the last 10 errors
           schema:
             $ref: "#/definitions/RouteStatistics"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /routes/{uuid}/logs:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        description: The uuid of the route
+        type: string
+    get:
+      summary: Gets the logs for a given token
+      operationId: get_route_logs
+      security: 
+        - googleToken: []
+      responses:
+        '200':
+          description: Logs for a given route
+          schema:
+            $ref: "#/definitions/RoutesLogs"
         default:
           description: unexpected error
           schema:
@@ -124,6 +145,19 @@ paths:
           description: Returns the given routes
           schema:
             $ref: "#/definitions/Routes"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /routes/statistics:
+    get:
+      summary: Gets the summary statistics for all routes
+      operationId: get_all_routes_stats
+      responses:
+        '200':
+          description: Returns the given route's statistics
+          schema:
+            $ref: "#/definitions/RoutesStatistics"
         default:
           description: unexpected error
           schema:
@@ -215,18 +249,13 @@ definitions:
   RouteStatistics:
     type: object
     required:
-      - num_successes
-      - num_failures
-      - last_failures
+      - successes
+      - failures
     properties:
-      num_successes:
+      successes:
         type: integer
-      num_failures:
+      failures:
         type: integer
-      last_failures:
-        type: array
-        items:
-          type: object
   Route:
     type: object
     allOf:
@@ -234,6 +263,7 @@ definitions:
           - no_ssl_verification
           - token
           - uuid
+          - rate_limit
         properties:
           no_ssl_verification:
             type: boolean
@@ -241,7 +271,29 @@ definitions:
             type: string
           uuid:
             type: string
+          rate_limit:
+            type: integer
+            minimum: 0
       - $ref: "#/definitions/NewRoute"
+  RoutesLogs:
+    type: array
+    items:
+      type: object
+  RoutesStatistics:
+    type: array
+    items:
+      type: object
+      required:
+        - successes
+        - failures
+        - uuid
+      properties:
+        successes:
+          type: integer
+        failures:
+          type: integer
+        uuid:
+          type: string
   Routes:
     type: array
     items:

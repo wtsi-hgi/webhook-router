@@ -24,13 +24,16 @@
                     <th width="30%">
                         Token
                     </th>
-                    <th>
+                    <th width="25%">
                         Destination
+                    </th>
+                    <th>
+                        Statistics
                     </th>
                 </tr>
             </thead>
             <tbody>
-                <tr @click="onRouteClick(route.uuid)" :key="route.token" v-for="route in filteredRoutes">
+                <tr style="cursor: pointer" @click="onRouteClick(route.uuid)" :key="route.token" v-for="route in filteredRoutes">
                     <td>
                         <span>{{ route.name }}</span>
                     </td>
@@ -40,10 +43,19 @@
                     <td>
                         {{ route.destination }}
                     </td>
+                    <td>
+                        <span>{{ route.stats.successes }}</span>
+                        <span style="color:green" class="oi oi-check"></span>
+                        <span style="margin-left: 5px">{{ route.stats.failures }}</span>
+                        <span style="color:red" class="oi oi-x"></span>
+                    </td>
                 </tr>
             </tbody>
         </table>
-        <p v-if="filteredRoutes.length == 0" class="lead text-muted" style="text-align: center;">No routes to display</p>
+        <p v-if="filteredRoutes.length == 0" class="lead text-muted" style="text-align: center;font-size:18px">
+            <template v-if="routes.length == 0">No routes added</template>
+            <template v-else>No search results</template>
+        </p>
     </div>
 </div>
 </template>
@@ -69,6 +81,7 @@ import Component from 'vue-class-component'
 import NavBarComponent from "./whr-navbar.vue";
 import * as utils from "../utils";
 import * as Fuse from "fuse.js";
+import { merge } from "lodash";
 
 @Component({
     components: {
@@ -80,7 +93,7 @@ import * as Fuse from "fuse.js";
     }
 })
 export default class extends Vue {
-    routes: swaggerAPI.Routes = []
+    routes: (swaggerAPI.Route & {stats: swaggerAPI.RouteStatistics})[] = []
 
     loaded = false;
 
@@ -92,9 +105,18 @@ export default class extends Vue {
     api: swaggerAPI.DefaultApi;
 
     async mounted(){
-        var routes = await this.api.getAllRoutes(this.authOptions);
+        let statsError: undefined | string;
 
-        this.routes = routes;
+        let [routes, stats] = await Promise.all([
+            await this.api.getAllRoutes(this.authOptions),
+            await this.api.getAllRoutesStats(this.authOptions).catch(e => {statsError = e; throw e;})
+        ]);
+
+        this.routes = <any>routes.map((route, i) => ({
+            ...route,
+            stats: stats[i]
+        }))
+
         this.loaded = true;
     }
 
