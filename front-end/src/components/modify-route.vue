@@ -32,6 +32,42 @@
                     <button type="submit" slot="submitButton" slot-scope="props" :disabled="props.disableButton" class="btn btn-outline-success">Save Changes</button>
                 </route-details-form>
             </div>
+            <h4>Location</h4>
+            <hr>
+            <div class="form-section">
+                <code ref="routeLocation" @click="selectRouteLocation">
+                    {{routingServerLocation}}/{{token}}
+                </code>
+                <div style="display: inline-block" data-trigger="manual" ref="copyButton" title="Copied!" @click="copyRouteLocation">
+                    <!--
+                        From https://octicons.github.com/icon/clippy/
+                        MIT License
+
+                        Copyright (c) 2012-2016 GitHub, Inc.
+
+                        Permission is hereby granted, free of charge, to any person obtaining a copy
+                        of this software and associated documentation files (the "Software"), to deal
+                        in the Software without restriction, including without limitation the rights
+                        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+                        copies of the Software, and to permit persons to whom the Software is
+                        furnished to do so, subject to the following conditions:
+
+                        The above copyright notice and this permission notice shall be included in all
+                        copies or substantial portions of the Software.
+
+                        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+                        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+                        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+                        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+                        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+                        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+                        SOFTWARE.
+
+                    -->
+                <svg class="octicon octicon-clippy" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M2 13h4v1H2v-1zm5-6H2v1h5V7zm2 3V8l-3 3 3 3v-2h5v-2H9zM4.5 9H2v1h2.5V9zM2 12h2.5v-1H2v1zm9 1h1v2c-.02.28-.11.52-.3.7-.19.18-.42.28-.7.3H1c-.55 0-1-.45-1-1V4c0-.55.45-1 1-1h3c0-1.11.89-2 2-2 1.11 0 2 .89 2 2h3c.55 0 1 .45 1 1v5h-1V6H1v9h10v-2zM2 5h8c0-.55-.45-1-1-1H8c-.55 0-1-.45-1-1s-.45-1-1-1-1 .45-1 1-.45 1-1 1H3c-.55 0-1 .45-1 1z"></path></svg>
+                </div>
+            </div>
+            <br />
             <h4>References</h4>
             <hr>
             <div class="form-section">
@@ -42,11 +78,6 @@
                 <br />
                 <label for="route-destination">UUID:</label>
                 <code>{{uuid}}</code>
-                <hr>
-                Route location: 
-                <code>
-                    {{routingServerLocation}}/{{token}}
-                </code>
             </div>
             <br />
             <h4>Statistics</h4>
@@ -97,6 +128,8 @@
         </div>
         <div class="modal-body">
             Are you sure you want to remove "{{configServerFormData.name}}" from your routes?
+            <br />
+            <small>This will not delete the route, but remove it from the list of your routes.</small>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -175,6 +208,8 @@ export default class extends Vue {
         deleteModal: HTMLElement;
         removeModal: HTMLElement;
         regenerateModal: HTMLElement;
+        routeLocation: HTMLElement;
+        copyButton: HTMLElement;
     }
 
     formModified = false
@@ -218,6 +253,20 @@ export default class extends Vue {
         if(success){
             this.$router.push("/");
         }
+    }
+
+    selectRouteLocation() {
+        window.getSelection().selectAllChildren(this.$refs.routeLocation);
+    }
+
+    async copyRouteLocation(){
+        this.selectRouteLocation();
+        document.execCommand("copy");
+        let copyButton = $(this.$refs.copyButton);
+
+        copyButton.tooltip("show");
+        await utils.delay(1000);
+        copyButton.tooltip("hide");
     }
 
     async removeRoute(){
