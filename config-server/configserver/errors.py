@@ -10,6 +10,10 @@ class InvalidRouteUUIDError(Exception):
     pass
 
 
+class RouteLinkNotFound(Exception):
+    pass
+
+
 class InvalidURLError(Exception):
     pass
 

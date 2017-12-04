@@ -20,8 +20,11 @@
             </span>
             <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm" style="margin-left: 10px; ">
                 Delete Route</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#removeConfirm">
+            <button type="button" v-if="hasUserAddedRoute" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#removeConfirm">
                 Remove from my routes</button>
+            <button type="button" v-else @click="addToMyRoutes" class="btn btn-outline-success btn-sm">
+                Add to my routes
+                </button>
         </h2>
         <hr>
         <div class="form-section">
@@ -35,9 +38,7 @@
             <h4>Location</h4>
             <hr>
             <div class="form-section">
-                <code ref="routeLocation" @click="selectRouteLocation">
-                    {{routingServerLocation}}/{{token}}
-                </code>
+                <code ref="routeLocation" @click="selectRouteLocation">{{routingServerLocation}}/{{token}}</code>
                 <div style="display: inline-block" data-trigger="manual" ref="copyButton" title="Copied!" @click="copyRouteLocation">
                     <!--
                         From https://octicons.github.com/icon/clippy/
@@ -212,7 +213,12 @@ export default class extends Vue {
         copyButton: HTMLElement;
     }
 
-    formModified = false
+    formModified = false;
+
+    /**
+     * Whether the user has this route in their routes
+     */
+    hasUserAddedRoute = true;
 
     /**
      * State for statistics
@@ -280,8 +286,16 @@ export default class extends Vue {
         }
 
         if(success){
-            this.$router.push("/");
+            this.hasUserAddedRoute = false;
         }
+    }
+    
+    async addToMyRoutes(){
+        this.api.addRouteLink({
+            uuid: this.uuid
+        }, this.authOptions);
+
+        this.hasUserAddedRoute = true;
     }
 
     async regenerateToken() {
@@ -311,7 +325,7 @@ export default class extends Vue {
     }
 
     async displayRouteStats(){
-        let [stats, logs] = await Promise.all([
+        let [stats, logs] = <[swaggerAPI.RouteStatistics, swaggerAPI.RoutesLogs]>await Promise.all([
             await this.api.getRouteStats({
                 uuid: this.uuid
             }, this.authOptions),
@@ -324,8 +338,8 @@ export default class extends Vue {
         this.errorLogs = logs.map(x => this.formatError(x)).join("\n");
     }
 
-    async getRouteInfo(){
-        var route = await this.api.getRoute({
+    async setRouteInfo(){
+        let route = await this.api.getRoute({
             uuid: this.uuid
         }, this.authOptions);
 
@@ -335,11 +349,24 @@ export default class extends Vue {
         this.configServerFormData = <any>pick(route, utils.formAttributes);
     }
 
+    async setHasUserAddedRoute(){
+        try{
+            let route = await this.api.getRouteLink({
+                uuid: this.uuid
+            }, this.authOptions);
+        }
+        catch(e){
+            if(e instanceof Response && e.status == 404){
+                this.hasUserAddedRoute = false;
+            }
+        }
+    }
+
     async mounted() {
         this.routingServerLocation = (await (await fetch("config.json")).json()).routingServer;
 
         try{
-            await Promise.all([this.getRouteInfo(), this.displayRouteStats()]);
+            await Promise.all([this.setRouteInfo(), this.displayRouteStats(), this.setHasUserAddedRoute()]);
         }
         finally{
             // load the bits that we can load

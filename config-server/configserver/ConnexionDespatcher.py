@@ -9,6 +9,7 @@ from .UserLinkDataMapper import UserLinkDataMapper
 from .logging import ConfigServerLogger
 from .StatisticQueryier import StatisticQueryier
 from .errors import *
+from .models import get_route_json
 
 
 # Configuration for mapping from the data mapper to the connextion object
@@ -147,6 +148,12 @@ class ConnexionDespatcher:
             stat["uuid"] = uuids[i]
         
         return stats
+
+    def get_route_link(self, user: str, uuid: str):
+        if not self._user_link_data_mapper.has_user_link(user, uuid):
+            raise RouteLinkNotFound()
+
+        return get_route_json(self._route_data_mapper.get(uuid))
 
     def get_route_logs(self, uuid: str):
         # make sure the uuid is actually valid

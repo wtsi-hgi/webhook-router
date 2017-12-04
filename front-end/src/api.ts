@@ -59,11 +59,9 @@ export interface RouteStatistics {
     "failures": number;
 }
 
-export interface Routes extends Array<Route> {
-}
+export type Routes = Route[];
 
-export interface RoutesLogs extends Array<any> {
-}
+export type RoutesLogs = any[];
 
 export interface RoutesStatistics extends Array<RoutesStatisticsInner> {
 }
@@ -259,6 +257,30 @@ export const DefaultApiFetchParamCreator = {
             throw new Error("Missing required parameter uuid when calling getRoute");
         }
         const baseUrl = `/routes/{uuid}`
+            .replace(`{${"uuid"}}`, `${ params["uuid"] }`);
+        let urlObj = url.parse(baseUrl, true);
+        let fetchOptions: RequestInit = Object.assign({}, { method: "GET" }, options);
+
+        let contentTypeHeader: Dictionary<string> = {};
+        if (contentTypeHeader) {
+            fetchOptions.headers = Object.assign({}, contentTypeHeader, fetchOptions.headers);
+        }
+        return {
+            url: url.format(urlObj),
+            options: fetchOptions,
+        };
+    },
+    /**
+     * 
+     * @summary Gets a route from a uuid, if that route is associated to the user as a route link, otherwise return a 404 error
+     * @param uuid The uuid of the route
+     */
+    getRouteLink(params: {  "uuid": string; }, options?: any): FetchArgs {
+        // verify required parameter "uuid" is set
+        if (params["uuid"] == null) {
+            throw new Error("Missing required parameter uuid when calling getRouteLink");
+        }
+        const baseUrl = `/links/{uuid}`
             .replace(`{${"uuid"}}`, `${ params["uuid"] }`);
         let urlObj = url.parse(baseUrl, true);
         let fetchOptions: RequestInit = Object.assign({}, { method: "GET" }, options);
@@ -519,6 +541,23 @@ export const DefaultApiFp = {
     },
     /**
      * 
+     * @summary Gets a route from a uuid, if that route is associated to the user as a route link, otherwise return a 404 error
+     * @param uuid The uuid of the route
+     */
+    getRouteLink(params: { "uuid": string;  }, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<Route> {
+        const fetchArgs = DefaultApiFetchParamCreator.getRouteLink(params, options);
+        return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
+            return fetch(basePath + fetchArgs.url, fetchArgs.options).then((response) => {
+                if (response.status >= 200 && response.status < 300) {
+                    return response.json();
+                } else {
+                    throw response;
+                }
+            });
+        };
+    },
+    /**
+     * 
      * @summary Gets the logs for a given token
      * @param uuid The uuid of the route
      */
@@ -656,6 +695,14 @@ export class DefaultApi extends BaseAPI {
     }
     /**
      * 
+     * @summary Gets a route from a uuid, if that route is associated to the user as a route link, otherwise return a 404 error
+     * @param uuid The uuid of the route
+     */
+    getRouteLink(params: {  "uuid": string; }, options?: any) {
+        return DefaultApiFp.getRouteLink(params, options)(this.fetch, this.basePath);
+    }
+    /**
+     * 
      * @summary Gets the logs for a given token
      * @param uuid The uuid of the route
      */
@@ -755,6 +802,14 @@ export const DefaultApiFactory = function (fetch?: FetchAPI, basePath?: string) 
          */
         getRoute(params: {  "uuid": string; }, options?: any) {
             return DefaultApiFp.getRoute(params, options)(fetch, basePath);
+        },
+        /**
+         * 
+         * @summary Gets a route from a uuid, if that route is associated to the user as a route link, otherwise return a 404 error
+         * @param uuid The uuid of the route
+         */
+        getRouteLink(params: {  "uuid": string; }, options?: any) {
+            return DefaultApiFp.getRouteLink(params, options)(fetch, basePath);
         },
         /**
          * 

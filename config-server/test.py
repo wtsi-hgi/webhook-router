@@ -113,6 +113,17 @@ def test_add_user_link(router_app: FlaskClient, test_route_uuid: str):
 
     assert len(json.loads(router_app.get("/routes", **test_auth).data)) == 1
 
+def test_get_user_link(router_app: FlaskClient, test_route_uuid: str):
+    test_auth = {
+        "headers": {
+            "user": "other_user-p@sanger.ac.uk"
+        }
+    }
+
+    assert router_app.get(f"/links/{test_route_uuid}", **test_auth).status_code == 404
+
+    assert router_app.get(f"/links/{test_route_uuid}").status_code == 200
+
 def test_remove_user_link(router_app: FlaskClient, test_route_uuid: str):
     test_auth = {
         "headers": {

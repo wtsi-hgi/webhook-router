@@ -3,10 +3,7 @@ import logging
 from .errors import *
 from .models import UserLink, Route, get_route_json
 
-from pythonjsonlogger import jsonlogger
-import connexion
-import flask
-from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, ForeignKeyField
+from peewee import DoesNotExist
 
 class UserLinkDataMapper:
     """
@@ -27,6 +24,14 @@ class UserLinkDataMapper:
             )
 
             link.save()
+
+    def has_user_link(self, user: str, uuid: str):
+        try:
+            self._try_get_link(user, uuid)
+        except DoesNotExist:
+            return False
+        
+        return True
 
     def get_users_links(self, user: str):
         routes = Route.select().join(UserLink).where(UserLink.user == user)

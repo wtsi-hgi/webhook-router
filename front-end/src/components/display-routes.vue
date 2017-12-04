@@ -46,7 +46,6 @@
                     <td>
                         <span>{{ route.stats.successes }}</span>
                         <span class="oi oi-check text-success"></span>
-                        <span class="routeDivider" v-html="'&nbsp;'"></span>
                         <span>{{ route.stats.failures }}</span>
                         <span class="oi oi-x text-danger"></span>
                     </td>
@@ -115,7 +114,7 @@ export default class extends Vue {
     async mounted(){
         let statsError: undefined | string;
 
-        let [routes, stats] = await Promise.all([
+        let [routes, stats] = <[swaggerAPI.Routes, swaggerAPI.RoutesStatistics]>await Promise.all([
             await this.api.getAllRoutes(this.authOptions),
             await this.api.getAllRoutesStats(this.authOptions).catch(e => {statsError = e; throw e;})
         ]);

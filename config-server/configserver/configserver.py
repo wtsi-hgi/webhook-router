@@ -96,6 +96,7 @@ class ConfigServer:
         self._set_error_handler(NotAuthorisedError, 3, "Not Authorised", HTTPStatus.FORBIDDEN)
         self._set_error_handler(InvalidURLError, 4, "Invalid URL in destination", HTTPStatus.BAD_REQUEST)
         self._set_error_handler(InvalidCredentialsError, 5, "Invalid credentials", HTTPStatus.BAD_REQUEST)
+        self._set_error_handler(RouteLinkNotFound, 6, "Route link doesn't exist", HTTPStatus.NOT_FOUND)
 
     def close(self):
         self._db.close()

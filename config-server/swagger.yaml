@@ -204,6 +204,21 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/Error"
+    get:
+      summary: Gets a route from a uuid, if that route is associated to the user as a route link,
+        otherwise return a 404 error
+      operationId: get_route_link
+      security: 
+        - googleToken: []
+      responses:
+        '200':
+          description: The route
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
     delete:
       summary: Removes a user's link
       operationId: delete_route_link
