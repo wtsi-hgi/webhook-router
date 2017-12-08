@@ -34,6 +34,11 @@ services:
       - "elasticsearch"
       - "configserver"
     networks: [app]
+  firewallconfig:
+    build: firewall-config
+    ports:
+      - "8083:8080"
+    networks: [app]
   frontend:
     build: front-end
     ports:
@@ -58,7 +63,7 @@ services:
     image: adminer
     restart: always
     ports:
-        - 8083:8080
+        - 8084:8080
     networks: [app]
 networks:
   app:

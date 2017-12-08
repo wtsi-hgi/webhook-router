@@ -52,7 +52,6 @@
 </style>
 <script lang="ts">
 import Vue from "vue";
-import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
 import NavBarComponent from "./whr-navbar.vue";
 import * as utils from "../utils";
@@ -73,10 +72,7 @@ export default class extends Vue {
         routeTokenInput: HTMLInputElement
     }
 
-    @Prop() googleToken: string;
-    @Prop() api: swaggerAPI.DefaultApi;
-
-    readonly authOptions = utils.getAuthOptions(this.googleToken);
+    @Prop() api: SwaggerAPI<BasicAPI>;
 
     @Watch("radioSelect") onRadioSelect() {
         setTimeout(() => {
@@ -92,13 +88,13 @@ export default class extends Vue {
     async postForm(){
         let uuid = this.uuid;
         if(this.radioSelect == "token"){
-            let route = await this.api.getByToken({token: this.token});
-            uuid = route.uuid;
+            let resp = await this.api.apis.routes.get_by_token({token: this.token});
+            uuid = resp.obj.uuid;
         }
 
-        let resp = await this.api.addRouteLink({uuid: uuid}, this.authOptions);
+        await this.api.apis.links.add_route_link({uuid: uuid});
 
-        this.$router.push({path: "modify-route", params: {uuid: uuid}});
+        this.$router.push(`/routes/${uuid}`);
     }
 
     cancelForm() {

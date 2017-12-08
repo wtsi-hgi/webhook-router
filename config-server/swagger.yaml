@@ -4,6 +4,10 @@ info:
   title: Webhook router config server
   license:
     name: MIT
+consumes:
+  - application/json
+produces:
+  - application/json
 paths:
   /routes/{uuid}:
     parameters:
@@ -13,9 +17,10 @@ paths:
         description: The uuid of the route
         type: string
     delete:
+      tags: [routes]
       summary: Delete the given webhook
       operationId: delete_route
-      security: 
+      security:
         - googleToken: []
       responses:
         '204':
@@ -25,8 +30,11 @@ paths:
           schema:
             $ref: "#/definitions/Error"
     get:
+      tags: [routes]
       summary: Gets the configuration for the given webhook
       operationId: get_route
+      security:
+        - googleToken: []
       responses:
         '200':
           description: The correct webhook
@@ -37,9 +45,10 @@ paths:
           schema:
             $ref: "#/definitions/Error"
     patch:
+      tags: [routes]
       summary: Edit the configuration of the given webhook
       operationId: patch_route
-      security: 
+      security:
         - googleToken: []
       parameters:
         - name: new_info
@@ -62,9 +71,10 @@ paths:
         description: The uuid of the route
         type: string
     get:
+      tags: [stats]
       summary: Gets the statistics for a given token
       operationId: get_route_stats
-      security: 
+      security:
         - googleToken: []
       responses:
         '200':
@@ -83,9 +93,10 @@ paths:
         description: The uuid of the route
         type: string
     get:
+      tags: [logs]
       summary: Gets the logs for a given token
       operationId: get_route_logs
-      security: 
+      security:
         - googleToken: []
       responses:
         '200':
@@ -104,6 +115,7 @@ paths:
         description: The token of the route
         type: string
     get:
+      tags: [routes]
       summary: Gets a route by it's token. Intended to be used by the router when it receives a request
       operationId: get_by_token
       responses:
@@ -123,9 +135,10 @@ paths:
         description: The uuid of the route
         type: string
     post:
+      tags: [routes]
       summary: Regenerates the token for the given route
       operationId: regenerate_token
-      security: 
+      security:
         - googleToken: []
       responses:
         '200':
@@ -138,8 +151,11 @@ paths:
             $ref: "#/definitions/Error"
   /routes:
     get:
+      tags: [routes]
       summary: Gets all routes that are configured for given user
       operationId: get_all_routes
+      security:
+        - googleToken: []
       responses:
         '200':
           description: Returns the given routes
@@ -151,8 +167,11 @@ paths:
             $ref: "#/definitions/Error"
   /routes/statistics:
     get:
+      tags: [stats]
       summary: Gets the summary statistics for all routes
       operationId: get_all_routes_stats
+      security:
+        - googleToken: []
       responses:
         '200':
           description: Returns the given route's statistics
@@ -164,9 +183,10 @@ paths:
             $ref: "#/definitions/Error"
   /create-route:
     post:
+      tags: [routes]
       summary: Creates a new route and adds it to the user's routes
       operationId: create_route
-      security: 
+      security:
         - googleToken: []
       parameters:
         - name: new_route
@@ -191,9 +211,10 @@ paths:
         description: The uuid of the route
         type: string
     post:
+      tags: [links]
       summary: Adds an existing route to a user's list of routes
       operationId: add_route_link
-      security: 
+      security:
         - googleToken: []
       responses:
         '201':
@@ -205,10 +226,11 @@ paths:
           schema:
             $ref: "#/definitions/Error"
     get:
+      tags: [links]
       summary: Gets a route from a uuid, if that route is associated to the user as a route link,
         otherwise return a 404 error
       operationId: get_route_link
-      security: 
+      security:
         - googleToken: []
       responses:
         '200':
@@ -220,6 +242,7 @@ paths:
           schema:
             $ref: "#/definitions/Error"
     delete:
+      tags: [links]
       summary: Removes a user's link
       operationId: delete_route_link
       security:

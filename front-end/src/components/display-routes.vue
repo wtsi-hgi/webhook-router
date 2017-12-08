@@ -2,16 +2,21 @@
 <div>
     <whr-navbar>
         <span class="divider" v-html="'&nbsp;'"></span>
-        <router-link to="create-route">
-            <button type="button" class="btn btn-outline-primary"><span class="oi oi-file"></span> Create Route</button>
-        </router-link>
-        <router-link style="margin-left: 5px" to="add-existing-route">
-            <button type="button" class="btn btn-outline-secondary"><span class="oi oi-plus"></span> Add Existing Route</button>
-        </router-link>
-        <span class="mr-auto"></span><!--Move the other elements to the left-->
-        <input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search routes" v-model="searchBar" aria-label="Search">
-        <span class="divider" v-html="'&nbsp;'"></span>
-        <slot name="logoutButton"></slot>
+        <template v-if="loaded">
+            <router-link to="create-route">
+                <button type="button" class="btn btn-outline-primary"><span class="oi oi-file"></span> Create Route</button>
+            </router-link>
+            <router-link style="margin-left: 5px" to="add-existing-route">
+                <button type="button" class="btn btn-outline-secondary"><span class="oi oi-plus"></span> Add Existing Route</button>
+            </router-link>
+            <router-link v-if="isAdmin" style="margin-left: 5px" to="admin">
+                <button type="button" class="btn btn-outline-secondary"><span class="oi oi-cog"></span> Admin Panel</button>
+            </router-link>
+            <span class="mr-auto"></span><!--Move the other elements to the left-->
+            <input class="form-inline form-control mr-sm-2" id="search" type="search" placeholder="Search routes" v-model="searchBar" aria-label="Search">
+            <span class="divider" v-html="'&nbsp;'"></span>
+            <slot name="logoutButton"></slot>
+        </template>
     </whr-navbar>
     <slot name="errors"></slot>
     <div v-show="loaded">
@@ -82,6 +87,8 @@
 </style>
 
 <script lang="ts">
+/// <reference path="../swagger-typings.d.ts" />
+
 import Vue from "vue";
 import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
@@ -89,14 +96,15 @@ import NavBarComponent from "./whr-navbar.vue";
 import * as utils from "../utils";
 import * as Fuse from "fuse.js";
 import { merge } from "lodash";
+import Swagger from 'swagger-client';
 
 @Component({
     components: {
         "whr-navbar": NavBarComponent
     },
     props: {
-        googleToken: String,
-        api: Object
+        api: Object,
+        adminAPI: Object
     }
 })
 export default class extends Vue {
@@ -104,25 +112,27 @@ export default class extends Vue {
 
     loaded = false;
 
-    googleToken: string;
-    searchBar = ""
-    
-    readonly authOptions = utils.getAuthOptions(this.googleToken);
+    searchBar = "";
 
-    api: swaggerAPI.DefaultApi;
+    isAdmin = false;
+
+    api: SwaggerAPI<BasicAPI>;
+    adminAPI: SwaggerAPI<BasicAPI>;
 
     async mounted(){
         let statsError: undefined | string;
 
-        let [routes, stats] = <[swaggerAPI.Routes, swaggerAPI.RoutesStatistics]>await Promise.all([
-            await this.api.getAllRoutes(this.authOptions),
-            await this.api.getAllRoutesStats(this.authOptions).catch(e => {statsError = e; throw e;})
-        ]);
+        let [routes, stats] = <[swaggerAPI.Routes, swaggerAPI.RoutesStatistics]>((await Promise.all([
+            await this.api.apis.routes.get_all_routes(),
+            await this.api.apis.stats.get_all_routes_stats().catch(e => {statsError = e; throw e;})
+        ])).map(x => x.obj));
 
         this.routes = <any>routes.map((route, i) => ({
             ...route,
             stats: stats[i]
         }))
+
+        this.isAdmin = (await this.adminAPI.apis.default.is_admin()).obj;
 
         this.loaded = true;
     }

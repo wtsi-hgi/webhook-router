@@ -194,7 +194,6 @@ import RouteDetailsForm from "./route-details-form.vue";
 @Component({
     props: {
         uuid: String,
-        googleToken: String,
         api: Object
     },
     components: {
@@ -208,8 +207,7 @@ export default class extends Vue {
      * Props passed to the object
      */
     uuid: string;
-    api: swaggerAPI.DefaultApi;
-    googleToken: string;
+    api: SwaggerAPI<BasicAPI>;
 
     token = "";
     loaded = false;
@@ -242,13 +240,11 @@ export default class extends Vue {
      */
     configServerFormData = utils.defaultFormData;
 
-    readonly authOptions = utils.getAuthOptions(this.googleToken);
-
     async postForm(formData: any){
-        let patchResult = await this.api.patchRoute({
+        await this.api.apis.routes.patch_route({
             uuid: this.uuid,
-            newInfo: formData
-        }, this.authOptions);
+            new_info: formData
+        });
 
         this.configServerFormData = cloneDeep(formData);
     }
@@ -256,7 +252,7 @@ export default class extends Vue {
     async deleteRoute() {
         let success = false;
         try {
-            await this.api.deleteRoute({uuid: this.uuid}, this.authOptions);
+            await this.api.apis.routes.deleteRoute({uuid: this.uuid});
             success = true;
         }
         finally{
@@ -285,7 +281,7 @@ export default class extends Vue {
     async removeRoute(){
         let success = false;
         try {
-            await this.api.deleteRouteLink({uuid: this.uuid}, this.authOptions);
+            await this.api.apis.links.delete_route_link({uuid: this.uuid});
             success = true;
         }
         finally{
@@ -298,19 +294,19 @@ export default class extends Vue {
     }
 
     async addToMyRoutes(){
-        this.api.addRouteLink({
+        this.api.apis.links.add_route_link({
             uuid: this.uuid
-        }, this.authOptions);
+        });
 
         this.hasUserAddedRoute = true;
     }
 
     async regenerateToken() {
-        let resp = await this.api.regenerateToken({
+        let resp = await this.api.apis.routes.regenerate_token({
             uuid: this.uuid
-        }, this.authOptions)
+        })
 
-        this.token = resp.token;
+        this.token = resp.obj.token;
     }
 
     formatError(error: any){
@@ -332,23 +328,23 @@ export default class extends Vue {
     }
 
     async displayRouteStats(){
-        let [stats, logs] = <[swaggerAPI.RouteStatistics, swaggerAPI.RoutesLogs]>await Promise.all([
-            await this.api.getRouteStats({
+        let [stats, logs] = <[swaggerAPI.RouteStatistics, swaggerAPI.RoutesLogs]>(await Promise.all([
+            await this.api.apis.stats.get_route_stats({
                 uuid: this.uuid
-            }, this.authOptions),
-            await this.api.getRouteLogs({
+            }),
+            await this.api.apis.logs.get_route_logs({
                 uuid: this.uuid
-            }, this.authOptions)
-        ])
+            })
+        ])).map(x => x.obj)
 
         this.stats = stats;
         this.errorLogs = logs.map(x => this.formatError(x)).join("\n");
     }
 
     async setRouteInfo(){
-        let route = await this.api.getRoute({
+        let route = (await this.api.apis.routes.get_route({
             uuid: this.uuid
-        }, this.authOptions);
+        })).obj;
 
         this.uuid = route.uuid;
         this.token = route.token;
@@ -358,9 +354,9 @@ export default class extends Vue {
 
     async setHasUserAddedRoute(){
         try{
-            let route = await this.api.getRouteLink({
+            let route = (await this.api.apis.links.get_route_link({
                 uuid: this.uuid
-            }, this.authOptions);
+            })).obj
         }
         catch(e){
             if(e instanceof Response && e.status == 404){

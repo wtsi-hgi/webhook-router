@@ -16,6 +16,11 @@ services:
       POSTGRES_PASSWORD: a_password
     stdin_open: true
     tty: true
+  firewallconfig:
+    volumes:
+      - ./firewall-config:/firewall-config
+    stdin_open: true
+    tty: true
   router:
     volumes:
       - ./router:/router

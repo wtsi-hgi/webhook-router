@@ -33,33 +33,37 @@ input{
 </style>
 <script lang="ts">
 import Vue from "vue";
-import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
 import NavBarComponent from "./whr-navbar.vue";
 import RouteDetailsForm from "./route-details-form.vue";
 import * as utils from "../utils";
 import { pick } from "lodash";
+import { Prop } from 'vue-property-decorator';
 
 @Component({
     components: {
         "whr-navbar": NavBarComponent,
         "route-details-form": RouteDetailsForm
-    },
-    props: {
-        googleToken: String,
-        api: Object
     }
 })
 export default class extends Vue {
-    googleToken: string;
-    readonly authOptions = utils.getAuthOptions(this.googleToken);
-
-    api: swaggerAPI.DefaultApi;
+    @Prop() api: SwaggerAPI<BasicAPI>;
+    @Prop() adminAPI: SwaggerAPI<BasicAPI>;
 
     async postForm(data: any){
-        let newRoute = await this.api.createRoute({
-            newRoute: <any>pick(data, utils.formAttributes)
-        }, this.authOptions)
+        let isValid = (await this.adminAPI.apis.default.is_url_valid({
+            url: data.destination
+        })).obj;
+
+        if(!isValid){
+            console.error("Incorrect route");
+
+            return;
+        }
+
+        let newRoute = (await this.api.apis.routes.create_route({
+            new_route: <any>pick(data, utils.formAttributes)
+        })).obj
 
         this.$router.push(`/routes/${newRoute.uuid}`);
     }

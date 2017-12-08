@@ -23,13 +23,13 @@
 <script lang="ts">
 import Vue from "vue";
 import Component from 'vue-class-component'
-import { Prop, Model } from 'vue-property-decorator';
+import { Prop } from 'vue-property-decorator';
 import { isEqual, cloneDeep } from "lodash";
 import { defaultFormData } from "../utils";
 
 @Component
 export default class extends Vue {
-    @Prop({default: defaultFormData}) initalData: object;
+    @Prop({default: () => defaultFormData}) initalData: object;
 
     @Prop() squashed: boolean; // whether the form should have less padding in it (for inline views)
 
@@ -43,8 +43,6 @@ export default class extends Vue {
 
     postForm(){
         this.$emit("formSubmitted", this.formData);
-
-        this.initalData = cloneDeep(this.formData);
     }
 
     get modified () {

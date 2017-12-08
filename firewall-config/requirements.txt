@@ -1,0 +1,5 @@
+connexion
+peewee
+google_auth
+flask-cors
+tornado

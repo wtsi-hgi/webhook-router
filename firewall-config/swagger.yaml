@@ -1,0 +1,116 @@
+swagger: "2.0"
+info:
+  version: 1.0.0
+  title: Webhook router firewall config server
+  license:
+    name: MIT
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /config:
+    put:
+      summary: Sets the configuration
+      operationId: set_config
+      security:
+        - googleToken: []
+      parameters:
+        - name: new_config
+          in: body
+          description: The new configuration
+          schema:
+            $ref: "#/definitions/Config"
+          required: true
+      responses:
+        '204':
+          description: Successfully set the configuration
+        default:
+          description: Unexpected error
+    get:
+      summary: Sets the configuration
+      operationId: get_config
+      security:
+        - googleToken: []
+      responses:
+        '200':
+          description: The current configuration
+          schema:
+            $ref: "#/definitions/Config"
+        default:
+          description: Unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /amIAdmin:
+    get:
+      summary: Returns whether the current user is an admin user, according to the auth
+      security:
+        - googleToken: []
+      operationId: is_admin
+      responses:
+        '200':
+          schema:
+            type: boolean
+          description: Whether the current user is admin
+        default:
+          description: Unexpected error
+  /isvalid:
+    get:
+      parameters:
+        - name: url
+          in: query
+          required: true
+          description: The url to query the validity of
+          type: string
+      operationId: is_url_valid
+      summary: Query the validity of routing to a certain url
+      responses:
+        "200":
+          description: Boolean value
+          schema:
+            type: boolean
+definitions:
+  Config:
+    type: object
+    required:
+      - firewallRules
+      - adminUsers
+    properties:
+      firewallRules:
+        type: array
+        items:
+          type: object
+          required:
+            - cidr
+            - from_port
+            - to_port
+          properties:
+            cidr:
+              type: string
+            from_port:
+              $ref: "#/definitions/Port"
+            to_port:
+              $ref: "#/definitions/Port"
+      adminUsers:
+        type: array
+        items:
+          type: string
+  Error:
+    type: object
+    required:
+      - error
+      - error_num
+    properties:
+      error:
+        type: string
+      error_num:
+        type: string
+  Port:
+    type: integer
+    minimum: 1
+    maximum: 65535
+securityDefinitions:
+  googleToken:
+    type: apiKey
+    name: Google-Auth-Token
+    in: header
