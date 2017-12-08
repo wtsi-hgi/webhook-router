@@ -45,7 +45,7 @@ class ConnexionDespatcher:
 
     Dispaches to the RouteDataMapper, UserLinkDataMapper, and StatisticQueryier.
     """
-    def __init__(self,  auth: Callable[[], str], 
+    def __init__(self,  auth: Callable[[], str],
                         route_data_mapper: RouteDataMapper,
                         user_link_data_mapper: UserLinkDataMapper,
                         statistic_queryier: StatisticQueryier,

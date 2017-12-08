@@ -2,7 +2,7 @@
     <form @submit.prevent="postForm">
         <p>
             <label for="route-name">Name:</label>
-            <input type="text" required class="form-control" placeholder="Route Name" 
+            <input type="text" required class="form-control" placeholder="Route Name"
                 id="route-name" required v-model="formData.name">
         </p>
         <p>

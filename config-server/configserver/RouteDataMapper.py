@@ -26,7 +26,7 @@ class RouteDataMapper:
             return Route.get(Route.uuid == uuid)
         except DoesNotExist as e:
             raise InvalidRouteUUIDError() from e
-    
+
     @staticmethod
     def _generate_new_token():
         """

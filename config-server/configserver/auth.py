@@ -24,7 +24,7 @@ def google_auth(google_oauth_clientID: str):
 
     if token is None:
         raise InvalidCredentialsError()
-    
+
     try:
         req_timeout = functools.partial(requests.Request(), timeout=3)
         token_info = id_token.verify_oauth2_token(token, req_timeout, google_oauth_clientID)

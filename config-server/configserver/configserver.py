@@ -30,7 +30,6 @@ class ConfigServer:
         self._db = db
         self._auth = auth
         proxy_db.initialize(db)
-        self._db.connect()
         db.create_tables([Route, UserLink], True)
 
         user_link_dm = UserLinkDataMapper()
@@ -72,7 +71,7 @@ class ConfigServer:
 
         # This is needed, as flask logs aren't propogated to the root logger
         add_file_log_handler(self.app.app.logger)
-    
+
     @staticmethod
     def on_after_request(response):
         logger.log_http_request(response)
