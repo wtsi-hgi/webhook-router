@@ -57,11 +57,11 @@ export default class extends Vue {
     api: swaggerAPI.DefaultApi;
 
     async postForm(data: any){
-        await this.api.createRoute({
+        let newRoute = await this.api.createRoute({
             newRoute: <any>pick(data, utils.formAttributes)
         }, this.authOptions)
 
-        this.$router.push("/");
+        this.$router.push(`/routes/${newRoute.uuid}`);
     }
 
     cancelForm() {

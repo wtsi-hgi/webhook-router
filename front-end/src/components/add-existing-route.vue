@@ -22,7 +22,7 @@
             <div @click="radioSelect = 'uuid'">
                 <input class="form-check-input" type="radio" name="example_route_radio" value="uuid" v-model="radioSelect">
                 <label for="route-name">UUID:</label>
-                <input type="text" required class="form-control" placeholder="Route UUID" 
+                <input type="text" required class="form-control" placeholder="Route UUID"
                     id="route-name" v-model="uuid" required :disabled="radioSelect == 'token'" ref="routeUUIDInput" autofocus>
             </div>
             <br />
@@ -72,7 +72,7 @@ export default class extends Vue {
         routeUUIDInput: HTMLInputElement,
         routeTokenInput: HTMLInputElement
     }
-    
+
     @Prop() googleToken: string;
     @Prop() api: swaggerAPI.DefaultApi;
 
@@ -98,7 +98,7 @@ export default class extends Vue {
 
         let resp = await this.api.addRouteLink({uuid: uuid}, this.authOptions);
 
-        this.$router.push("/");
+        this.$router.push({path: "modify-route", params: {uuid: uuid}});
     }
 
     cancelForm() {

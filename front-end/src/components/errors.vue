@@ -3,7 +3,7 @@
         <div role="alert" class="alert alert-danger" v-for="(error, index) in errors" :key="error.key">
             <strong>Error:</strong> {{error.text}}
             <button type="button" class="close" aria-label="Close" v-if="!error.persist">
-                <span @click="closeError(index)" aria-hidden="true" innerHTML="&times;"></span>
+                <span @click="closeError(index)" aria-hidden="true" v-html="'&times;'"></span>
             </button>
         </div>
     </div>

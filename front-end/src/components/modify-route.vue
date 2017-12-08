@@ -31,14 +31,14 @@
             <h4>Configuration</h4>
             <hr>
             <div class="form-section">
-                <route-details-form @formModified="formModified" v-if="loaded" @formSubmitted="postForm" :squashed="true" :initalData="configServerFormData">
-                    <button type="submit" slot="submitButton" slot-scope="props" :disabled="props.disableButton" class="btn btn-outline-success">Save Changes</button>
+                <route-details-form v-if="loaded" @formSubmitted="postForm" :squashed="true" :initalData="configServerFormData">
+                    <button type="submit" slot="submitButton" slot-scope="props" :disabled="props.disableButton" class="btn btn-success">Save Changes</button>
                 </route-details-form>
             </div>
             <h4>Location</h4>
             <hr>
             <div class="form-section">
-                <code ref="routeLocation" @click="selectRouteLocation">{{routingServerLocation}}/{{token}}</code>
+                <code ref="routeLocation">{{routingServerLocation}}/{{token}}</code>
                 <div style="display: inline-block" data-trigger="manual" ref="copyButton" title="Copied!" @click="copyRouteLocation">
                 <button type="button" class="btn btn-outline-secondary btn-sm">
                     <!--
@@ -222,8 +222,6 @@ export default class extends Vue {
         copyButton: HTMLElement;
     }
 
-    formModified = false;
-
     /**
      * Whether the user has this route in their routes
      */
@@ -298,7 +296,7 @@ export default class extends Vue {
             this.hasUserAddedRoute = false;
         }
     }
-    
+
     async addToMyRoutes(){
         this.api.addRouteLink({
             uuid: this.uuid
@@ -311,7 +309,7 @@ export default class extends Vue {
         let resp = await this.api.regenerateToken({
             uuid: this.uuid
         }, this.authOptions)
-        
+
         this.token = resp.token;
     }
 
@@ -327,7 +325,7 @@ export default class extends Vue {
         let propertyStr = Object.entries(error)
             .filter(x => !excludeProps.has(x[0]))
             .map(propPair => `\t${propPair[0]}=${propPair[1]}`);
-        
+
         let timestamp = (new Date(error["@timestamp"])).toLocaleString()
 
         return `[${timestamp}] ${error.level}: ${error.message} \n${propertyStr.join("\n")}`
