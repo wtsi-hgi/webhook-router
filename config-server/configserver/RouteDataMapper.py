@@ -1,15 +1,12 @@
-from abc import ABC, ABCMeta
 import logging
 import secrets
 import uuid
 
+from peewee import DoesNotExist
+
 from .models import Route, get_route_json
 from .UserLinkDataMapper import UserLinkDataMapper
 from .errors import *
-from pythonjsonlogger import jsonlogger
-import connexion
-import flask
-from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, BooleanField
 
 logger = logging.getLogger("config_server.route_data_mapper")
 
@@ -29,7 +26,7 @@ class RouteDataMapper:
             return Route.get(Route.uuid == uuid)
         except DoesNotExist as e:
             raise InvalidRouteUUIDError() from e
-    
+
     @staticmethod
     def _generate_new_token():
         """
@@ -71,14 +68,12 @@ class RouteDataMapper:
             else:
                 raise InvalidRouteTokenError()
 
-    def add(self, user: str, destination: str, name: str, no_ssl_verification: bool):
+    def add(self, user: str, **kwargs):
         route_uuid = str(uuid.uuid4())
         token, token_id = RouteDataMapper._generate_new_token()
 
         route = Route(
-            destination=destination,
-            name=name,
-            no_ssl_verification=no_ssl_verification,
+            **kwargs,
             uuid=route_uuid,
             token=token,
             token_id=token_id)

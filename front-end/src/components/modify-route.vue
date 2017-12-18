@@ -20,18 +20,58 @@
             </span>
             <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm" style="margin-left: 10px; ">
                 Delete Route</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#removeConfirm">
+            <button type="button" v-if="hasUserAddedRoute" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#removeConfirm">
                 Remove from my routes</button>
+            <button type="button" v-else @click="addToMyRoutes" class="btn btn-outline-success btn-sm">
+                Add to my routes
+                </button>
         </h2>
         <hr>
         <div class="form-section">
             <h4>Configuration</h4>
             <hr>
             <div class="form-section">
-                <route-details-form @formModified="formModified" v-if="loaded" @formSubmitted="postForm" :squashed="true" :initalData="configServerFormData">
-                    <button type="submit" slot="submitButton" slot-scope="props" :disabled="props.disableButton" class="btn btn-outline-success">Save Changes</button>
+                <route-details-form v-if="loaded" @formSubmitted="postForm" :squashed="true" :initalData="configServerFormData">
+                    <button type="submit" slot="submitButton" slot-scope="props" :disabled="props.disableButton" class="btn btn-success">Save Changes</button>
                 </route-details-form>
             </div>
+            <h4>Location</h4>
+            <hr>
+            <div class="form-section">
+                <code ref="routeLocation">{{routingServerLocation}}/{{token}}</code>
+                <div style="display: inline-block" data-trigger="manual" ref="copyButton" title="Copied!" @click="copyRouteLocation">
+                <button type="button" class="btn btn-outline-secondary btn-sm">
+                    <!--
+                        From https://octicons.github.com/icon/clippy/
+                        MIT License
+
+                        Copyright (c) 2012-2016 GitHub, Inc.
+
+                        Permission is hereby granted, free of charge, to any person obtaining a copy
+                        of this software and associated documentation files (the "Software"), to deal
+                        in the Software without restriction, including without limitation the rights
+                        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+                        copies of the Software, and to permit persons to whom the Software is
+                        furnished to do so, subject to the following conditions:
+
+                        The above copyright notice and this permission notice shall be included in all
+                        copies or substantial portions of the Software.
+
+                        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+                        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+                        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+                        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+                        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+                        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+                        SOFTWARE.
+
+                    -->
+                <svg class="octicon octicon-clippy" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path class="clipboard-icon" fill-rule="evenodd" d="M2 13h4v1H2v-1zm5-6H2v1h5V7zm2 3V8l-3 3 3 3v-2h5v-2H9zM4.5 9H2v1h2.5V9zM2 12h2.5v-1H2v1zm9 1h1v2c-.02.28-.11.52-.3.7-.19.18-.42.28-.7.3H1c-.55 0-1-.45-1-1V4c0-.55.45-1 1-1h3c0-1.11.89-2 2-2 1.11 0 2 .89 2 2h3c.55 0 1 .45 1 1v5h-1V6H1v9h10v-2zM2 5h8c0-.55-.45-1-1-1H8c-.55 0-1-.45-1-1s-.45-1-1-1-1 .45-1 1-.45 1-1 1H3c-.55 0-1 .45-1 1z"></path></svg>
+                <span style="display:inline-block;vertical-align: text-bottom;padding-left: 1px;">Copy Route</span>
+                </button>
+                </div>
+            </div>
+            <br />
             <h4>References</h4>
             <hr>
             <div class="form-section">
@@ -42,17 +82,12 @@
                 <br />
                 <label for="route-destination">UUID:</label>
                 <code>{{uuid}}</code>
-                <hr>
-                Route location: 
-                <code>
-                    {{routingServerLocation}}/{{token}}
-                </code>
             </div>
             <br />
             <h4>Statistics</h4>
             <hr>
             <div class="form-section">
-                {{numSuccesses}} webhook{{numSuccesses == 1?"":"s"}} correctly routed. {{numFailures}} error{{numFailures == 1?"":"s"}}.
+                {{stats.successes}} webhook{{stats.successes == 1?"":"s"}} correctly routed. {{stats.failures}} error{{stats.failures == 1?"":"s"}}.
             </div>
             <br />
             <div v-show="errorLogs != ''">
@@ -97,6 +132,8 @@
         </div>
         <div class="modal-body">
             Are you sure you want to remove "{{configServerFormData.name}}" from your routes?
+            <br />
+            <small>This will not delete the route, but remove it from the list of your routes.</small>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -131,9 +168,15 @@
 </div>
 </div>
 </template>
-<style scoped>
+<style>
 .form-section{
     padding-left: 10px
+}
+.clipboard-icon{
+    fill: rgb(134, 142, 150);
+}
+button:hover .clipboard-icon{
+    fill: #fff;
 }
 </style>
 
@@ -151,7 +194,6 @@ import RouteDetailsForm from "./route-details-form.vue";
 @Component({
     props: {
         uuid: String,
-        googleToken: String,
         api: Object
     },
     components: {
@@ -165,8 +207,7 @@ export default class extends Vue {
      * Props passed to the object
      */
     uuid: string;
-    api: swaggerAPI.DefaultApi;
-    googleToken: string;
+    api: SwaggerAPI<BasicAPI>;
 
     token = "";
     loaded = false;
@@ -175,15 +216,22 @@ export default class extends Vue {
         deleteModal: HTMLElement;
         removeModal: HTMLElement;
         regenerateModal: HTMLElement;
+        routeLocation: HTMLElement;
+        copyButton: HTMLElement;
     }
 
-    formModified = false
+    /**
+     * Whether the user has this route in their routes
+     */
+    hasUserAddedRoute = true;
 
     /**
      * State for statistics
      */
-    numSuccesses = 0;
-    numFailures = 0;
+    stats = {
+        successes: 0,
+        failures: 0
+    }
     errorLogs = "";
 
     /**
@@ -192,13 +240,11 @@ export default class extends Vue {
      */
     configServerFormData = utils.defaultFormData;
 
-    readonly authOptions = utils.getAuthOptions(this.googleToken);
-
     async postForm(formData: any){
-        let patchResult = await this.api.patchRoute({
+        await this.api.apis.routes.patch_route({
             uuid: this.uuid,
-            newInfo: formData
-        }, this.authOptions);
+            new_info: formData
+        });
 
         this.configServerFormData = cloneDeep(formData);
     }
@@ -206,7 +252,7 @@ export default class extends Vue {
     async deleteRoute() {
         let success = false;
         try {
-            await this.api.deleteRoute({uuid: this.uuid}, this.authOptions);
+            await this.api.apis.routes.deleteRoute({uuid: this.uuid});
             success = true;
         }
         finally{
@@ -218,10 +264,24 @@ export default class extends Vue {
         }
     }
 
+    selectRouteLocation() {
+        window.getSelection().selectAllChildren(this.$refs.routeLocation);
+    }
+
+    async copyRouteLocation(){
+        this.selectRouteLocation();
+        document.execCommand("copy");
+        let copyButton = $(this.$refs.copyButton);
+
+        copyButton.tooltip("show");
+        await utils.delay(1000);
+        copyButton.tooltip("hide");
+    }
+
     async removeRoute(){
         let success = false;
         try {
-            await this.api.deleteRouteLink({uuid: this.uuid}, this.authOptions);
+            await this.api.apis.links.delete_route_link({uuid: this.uuid});
             success = true;
         }
         finally{
@@ -229,16 +289,24 @@ export default class extends Vue {
         }
 
         if(success){
-            this.$router.push("/");
+            this.hasUserAddedRoute = false;
         }
     }
 
-    async regenerateToken() {
-        let resp = await this.api.regenerateToken({
+    async addToMyRoutes(){
+        this.api.apis.links.add_route_link({
             uuid: this.uuid
-        }, this.authOptions)
-        
-        this.token = resp.token;
+        });
+
+        this.hasUserAddedRoute = true;
+    }
+
+    async regenerateToken() {
+        let resp = await this.api.apis.routes.regenerate_token({
+            uuid: this.uuid
+        })
+
+        this.token = resp.obj.token;
     }
 
     formatError(error: any){
@@ -253,36 +321,55 @@ export default class extends Vue {
         let propertyStr = Object.entries(error)
             .filter(x => !excludeProps.has(x[0]))
             .map(propPair => `\t${propPair[0]}=${propPair[1]}`);
-        
+
         let timestamp = (new Date(error["@timestamp"])).toLocaleString()
 
         return `[${timestamp}] ${error.level}: ${error.message} \n${propertyStr.join("\n")}`
     }
 
-    async displayRouteErrors(){
-        var stats = await this.api.getRouteStatistics({
-            uuid: this.uuid
-        }, this.authOptions);
+    async displayRouteStats(){
+        let [stats, logs] = <[swaggerAPI.RouteStatistics, swaggerAPI.RoutesLogs]>(await Promise.all([
+            await this.api.apis.stats.get_route_stats({
+                uuid: this.uuid
+            }),
+            await this.api.apis.logs.get_route_logs({
+                uuid: this.uuid
+            })
+        ])).map(x => x.obj)
 
-        this.numSuccesses = stats.num_successes;
-        this.numFailures = stats.num_failures;
-        this.errorLogs = stats.last_failures.map(x => this.formatError(x)).join("\n");
+        this.stats = stats;
+        this.errorLogs = logs.map(x => this.formatError(x)).join("\n");
+    }
+
+    async setRouteInfo(){
+        let route = (await this.api.apis.routes.get_route({
+            uuid: this.uuid
+        })).obj;
+
+        this.uuid = route.uuid;
+        this.token = route.token;
+
+        this.configServerFormData = <any>pick(route, utils.formAttributes);
+    }
+
+    async setHasUserAddedRoute(){
+        try{
+            let route = (await this.api.apis.links.get_route_link({
+                uuid: this.uuid
+            })).obj
+        }
+        catch(e){
+            if(e instanceof Response && e.status == 404){
+                this.hasUserAddedRoute = false;
+            }
+        }
     }
 
     async mounted() {
         this.routingServerLocation = (await (await fetch("config.json")).json()).routingServer;
 
-        var route = await this.api.getRoute({
-            uuid: this.uuid
-        }, this.authOptions);
-
-        this.uuid = route.uuid;
-        this.token = route.token;
-
-        this.configServerFormData = <any>pick(route, Object.keys(utils.defaultFormData));
-
         try{
-            await this.displayRouteErrors();
+            await Promise.all([this.setRouteInfo(), this.displayRouteStats(), this.setHasUserAddedRoute()]);
         }
         finally{
             // load the bits that we can load

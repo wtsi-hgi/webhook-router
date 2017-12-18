@@ -22,7 +22,7 @@
             <div @click="radioSelect = 'uuid'">
                 <input class="form-check-input" type="radio" name="example_route_radio" value="uuid" v-model="radioSelect">
                 <label for="route-name">UUID:</label>
-                <input type="text" required class="form-control" placeholder="Route UUID" 
+                <input type="text" required class="form-control" placeholder="Route UUID"
                     id="route-name" v-model="uuid" required :disabled="radioSelect == 'token'" ref="routeUUIDInput" autofocus>
             </div>
             <br />
@@ -38,7 +38,7 @@
             <br/>
             <br />
             <button type="submit" class="btn btn-outline-success">Add route</button>
-            <button type="reset" @click="cancelForm" class="btn btn-outline-secondary">Cancel</button>
+            <button type="reset" @click="cancelForm" class="btn btn-outline-secondary">Back</button>
             <br />
         </div>
     </form>
@@ -52,7 +52,6 @@
 </style>
 <script lang="ts">
 import Vue from "vue";
-import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
 import NavBarComponent from "./whr-navbar.vue";
 import * as utils from "../utils";
@@ -72,11 +71,8 @@ export default class extends Vue {
         routeUUIDInput: HTMLInputElement,
         routeTokenInput: HTMLInputElement
     }
-    
-    @Prop() googleToken: string;
-    @Prop() api: swaggerAPI.DefaultApi;
 
-    readonly authOptions = utils.getAuthOptions(this.googleToken);
+    @Prop() api: SwaggerAPI<BasicAPI>;
 
     @Watch("radioSelect") onRadioSelect() {
         setTimeout(() => {
@@ -92,13 +88,13 @@ export default class extends Vue {
     async postForm(){
         let uuid = this.uuid;
         if(this.radioSelect == "token"){
-            let route = await this.api.getByToken({token: this.token});
-            uuid = route.uuid;
+            let resp = await this.api.apis.routes.get_by_token({token: this.token});
+            uuid = resp.obj.uuid;
         }
 
-        let resp = await this.api.addRouteLink({uuid: uuid}, this.authOptions);
+        await this.api.apis.links.add_route_link({uuid: uuid});
 
-        this.$router.push("/");
+        this.$router.push(`/routes/${uuid}`);
     }
 
     cancelForm() {

@@ -10,9 +10,15 @@ services:
     tty: true
   configserver:
     volumes:
+      - "./config.json:/config-server/config.json"
       - ./config-server:/config-server
     environment:
       POSTGRES_PASSWORD: a_password
+    stdin_open: true
+    tty: true
+  firewallconfig:
+    volumes:
+      - ./firewall-config:/firewall-config
     stdin_open: true
     tty: true
   router:
@@ -23,3 +29,4 @@ services:
   db:
     environment:
       POSTGRES_PASSWORD: a_password
+

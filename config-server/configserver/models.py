@@ -1,4 +1,4 @@
-from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, ForeignKeyField, BooleanField
+from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, ForeignKeyField, BooleanField, IntegerField
 from peewee import Proxy
 
 proxy_db = Proxy()
@@ -8,6 +8,7 @@ class Route(Model):
     name = CharField()
     destination = CharField()
     no_ssl_verification = BooleanField()
+    rate_limit = IntegerField()
     token = CharField()
     # tokenId: A starting bit of the token, which is used for querying the token in the database
     token_id = CharField()
@@ -19,7 +20,7 @@ def get_route_json(route: Route):
     """
     Gets the json respresentation of given route, for returning to the user
     """
-    public_fields = ["uuid", "name", "destination", "token", "no_ssl_verification"]
+    public_fields = ["uuid", "name", "destination", "token", "no_ssl_verification", "rate_limit"]
     new_ob = {}
 
     for field in public_fields:

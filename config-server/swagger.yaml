@@ -1,9 +1,13 @@
 swagger: "2.0"
 info:
   version: 1.0.0
-  title: Webhook router config
+  title: Webhook router config server
   license:
     name: MIT
+consumes:
+  - application/json
+produces:
+  - application/json
 paths:
   /routes/{uuid}:
     parameters:
@@ -13,9 +17,10 @@ paths:
         description: The uuid of the route
         type: string
     delete:
+      tags: [routes]
       summary: Delete the given webhook
       operationId: delete_route
-      security: 
+      security:
         - googleToken: []
       responses:
         '204':
@@ -25,8 +30,11 @@ paths:
           schema:
             $ref: "#/definitions/Error"
     get:
+      tags: [routes]
       summary: Gets the configuration for the given webhook
       operationId: get_route
+      security:
+        - googleToken: []
       responses:
         '200':
           description: The correct webhook
@@ -37,9 +45,10 @@ paths:
           schema:
             $ref: "#/definitions/Error"
     patch:
+      tags: [routes]
       summary: Edit the configuration of the given webhook
       operationId: patch_route
-      security: 
+      security:
         - googleToken: []
       parameters:
         - name: new_info
@@ -62,15 +71,38 @@ paths:
         description: The uuid of the route
         type: string
     get:
+      tags: [stats]
       summary: Gets the statistics for a given token
-      operationId: get_route_statistics
-      security: 
+      operationId: get_route_stats
+      security:
         - googleToken: []
       responses:
         '200':
           description: Statistics for a given token, includes the last 10 errors
           schema:
             $ref: "#/definitions/RouteStatistics"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+  /routes/{uuid}/logs:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        description: The uuid of the route
+        type: string
+    get:
+      tags: [logs]
+      summary: Gets the logs for a given token
+      operationId: get_route_logs
+      security:
+        - googleToken: []
+      responses:
+        '200':
+          description: Logs for a given route
+          schema:
+            $ref: "#/definitions/RoutesLogs"
         default:
           description: unexpected error
           schema:
@@ -83,6 +115,7 @@ paths:
         description: The token of the route
         type: string
     get:
+      tags: [routes]
       summary: Gets a route by it's token. Intended to be used by the router when it receives a request
       operationId: get_by_token
       responses:
@@ -102,9 +135,10 @@ paths:
         description: The uuid of the route
         type: string
     post:
+      tags: [routes]
       summary: Regenerates the token for the given route
       operationId: regenerate_token
-      security: 
+      security:
         - googleToken: []
       responses:
         '200':
@@ -117,8 +151,11 @@ paths:
             $ref: "#/definitions/Error"
   /routes:
     get:
+      tags: [routes]
       summary: Gets all routes that are configured for given user
       operationId: get_all_routes
+      security:
+        - googleToken: []
       responses:
         '200':
           description: Returns the given routes
@@ -128,11 +165,28 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/Error"
+  /routes/statistics:
+    get:
+      tags: [stats]
+      summary: Gets the summary statistics for all routes
+      operationId: get_all_routes_stats
+      security:
+        - googleToken: []
+      responses:
+        '200':
+          description: Returns the given route's statistics
+          schema:
+            $ref: "#/definitions/RoutesStatistics"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
   /create-route:
     post:
+      tags: [routes]
       summary: Creates a new route and adds it to the user's routes
       operationId: create_route
-      security: 
+      security:
         - googleToken: []
       parameters:
         - name: new_route
@@ -157,9 +211,10 @@ paths:
         description: The uuid of the route
         type: string
     post:
+      tags: [links]
       summary: Adds an existing route to a user's list of routes
       operationId: add_route_link
-      security: 
+      security:
         - googleToken: []
       responses:
         '201':
@@ -170,7 +225,24 @@ paths:
           description: unexpected error
           schema:
             $ref: "#/definitions/Error"
+    get:
+      tags: [links]
+      summary: Gets a route from a uuid, if that route is associated to the user as a route link,
+        otherwise return a 404 error
+      operationId: get_route_link
+      security:
+        - googleToken: []
+      responses:
+        '200':
+          description: The route
+          schema:
+            $ref: "#/definitions/Route"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/Error"
     delete:
+      tags: [links]
       summary: Removes a user's link
       operationId: delete_route_link
       security:
@@ -184,6 +256,7 @@ paths:
             $ref: "#/definitions/Error"
 definitions:
   NewRoute:
+    type: object
     required:
       - name
       - destination
@@ -195,7 +268,12 @@ definitions:
       no_ssl_verification:
         type: boolean
         default: false
+      rate_limit:
+        type: integer
+        minimum: 0
+        default: 30
   PatchRoute:
+      type: object
       properties:
         name:
           type: string
@@ -203,26 +281,27 @@ definitions:
           type: string
         no_ssl_verification:
           type: boolean
+        rate_limit:
+          type: integer
+          minimum: 0
   RouteStatistics:
+    type: object
     required:
-      - num_successes
-      - num_failures
-      - last_failures
+      - successes
+      - failures
     properties:
-      num_successes:
+      successes:
         type: integer
-      num_failures:
+      failures:
         type: integer
-      last_failures:
-        type: array
-        items:
-          type: object
   Route:
+    type: object
     allOf:
       - required:
           - no_ssl_verification
           - token
           - uuid
+          - rate_limit
         properties:
           no_ssl_verification:
             type: boolean
@@ -230,12 +309,35 @@ definitions:
             type: string
           uuid:
             type: string
+          rate_limit:
+            type: integer
+            minimum: 0
       - $ref: "#/definitions/NewRoute"
+  RoutesLogs:
+    type: array
+    items:
+      type: object
+  RoutesStatistics:
+    type: array
+    items:
+      type: object
+      required:
+        - successes
+        - failures
+        - uuid
+      properties:
+        successes:
+          type: integer
+        failures:
+          type: integer
+        uuid:
+          type: string
   Routes:
     type: array
     items:
       $ref: "#/definitions/Route"
   Error:
+    type: object
     required:
       - error
       - error_num

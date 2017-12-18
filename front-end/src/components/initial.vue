@@ -9,7 +9,7 @@
         <errors ref="errors" slot="errors"></errors>
     </div>
     <!--Setting the key as below reloads the page on path change-->
-    <router-view v-else class="view" :key="$route.fullPath" :googleToken="googleToken" :api="api">
+    <router-view v-else class="view" :key="$route.fullPath" :adminAPI="adminAPI" :api="api">
         <button type="button" class="btn btn-outline-warning" slot="logoutButton" @click="logout">Logout</button>
         <errors ref="errors" slot="errors"></errors>
     </router-view>
@@ -26,12 +26,13 @@ import ModifyRouteComponent from "./modify-route.vue";
 import SignInComponent from "./signin.vue";
 import NavBarComponent from "./whr-navbar.vue";
 import NotFoundComponent from "./404-not-found.vue";
+import AdminPanelComponent from "./admin-panel.vue"
 import Component from 'vue-class-component';
 import ErrorsComponent from "./errors.vue";
-import * as swaggerAPI from "../api";
 import * as utils from "../utils";
 var Mprogress = require("mprogress/mprogress.min.js"); // Do this, as the main module is not exported
 import {auto} from 'browser-unhandled-rejection';
+import Swagger from 'swagger-client';
 
 // pollyfill the event unhandledrejection
 auto();
@@ -42,6 +43,7 @@ const router = new VueRouter({
     routes: [
         {path: "/", component: DisplayRoutesComponent, name: "home"},
         {path: "/create-route", component: CreateRouteComponent, name: "create-route"},
+        {path: "/admin", component: AdminPanelComponent, name: "admin"},
         {path: "/add-existing-route", component: AddExistingRouteComponent, name: "add-existing-route"},
         {path: "/routes/:uuid", component: ModifyRouteComponent, props: true, name: "modify-route"},
         {path: "*", component: NotFoundComponent}
@@ -66,7 +68,8 @@ export default class extends Vue {
     state = "start"
     private googleToken = ""
     auth: gapi.auth2.GoogleAuth;
-    api: swaggerAPI.DefaultApi;
+    api: SwaggerAPI<BasicAPI>;
+    adminAPI: SwaggerAPI<BasicAPI>;
     tokenExpiration: number;
     progressBar = new Mprogress({
         template: 3, // 3 = indeterminate progress bar
@@ -83,23 +86,6 @@ export default class extends Vue {
         errors: ErrorsComponent;
     }
 
-    private async fetchWrapper(input: RequestInfo, init?: RequestInit){
-        this.progressBar.start();
-        
-        try{
-            return await fetch(input, init);
-        }
-        catch(e){
-            if(e instanceof Error && e.message == "Failed to fetch"){
-                e.message += ` ${input}`
-            }
-            throw e
-        }
-        finally{
-            this.progressBar.end();
-        }
-    }
-
     async tryReloadToken(){
         if(this.tokenExpiration - this.reloadPadding < Date.now()){
             let newAuthResp = await this.auth.currentUser.get().reloadAuthResponse();
@@ -109,7 +95,7 @@ export default class extends Vue {
         }
     }
 
-    login(token: string){
+    async login(token: string){
         this.googleToken = token;
         this.state = "signed_in";
     }
@@ -123,18 +109,17 @@ export default class extends Vue {
     async getErrorString(error: any){
         let errorText: string;
 
-        if(error instanceof Response){
-            let respText: string | undefined = undefined;
-            try{
-                respText = (await error.json()).error;
+        if(error instanceof Error){
+            if((<any>error).response != undefined){
+                let resp = (<any>error).response;
+                errorText = `Failed to get ${resp.url}, ${resp.statusText}: ${resp.obj.error}`;
             }
-            catch{}
-
-            errorText = `Failed to get ${error.url}, ${error.statusText}` + 
-                (respText == undefined?"":`: ${respText}`)
+            else{
+                errorText = error.message
+            }
         }
-        else if(error instanceof Error){
-            errorText = error.toString()
+        else if(error instanceof ErrorEvent){
+            errorText = `${error.lineno}:${error.colno} ${error.message}`
         }
         else if(error instanceof Object){
             errorText = JSON.stringify(error);
@@ -145,15 +130,24 @@ export default class extends Vue {
 
         return errorText;
     }
+
+    onError(errorText: string){
+        this.$refs.errors.addError(errorText);
+
+        this.progressBar.end();
+    }
     
     async mounted() {
         this.progressBar.start();
         window.addEventListener("unhandledrejection", async (e) => {
-            this.$refs.errors.addError(await this.getErrorString((<any>e).reason));
+            this.onError(await this.getErrorString((<any>e).reason));
+        })
+        
+        window.addEventListener("error", async (e) => {
+            this.onError(await this.getErrorString(e));
         })
 
         let configJSON = (await (await fetch("config.json")).json());
-        this.api = new swaggerAPI.DefaultApi(this.fetchWrapper.bind(this), configJSON.configServer);
 
         // let google tell us when it's loaded (look in index.html for the definition of this)
         await (<any>window).gapiLoadPromise;
@@ -164,12 +158,26 @@ export default class extends Vue {
                 fetch_basic_profile: false,
                 scope: 'profile',
                 hosted_domain: "sanger.ac.uk"
-            }).then(auth => {
+            }).then(async auth => {
                 this.progressBar.end();
                 this.auth = auth;
                 if(this.auth.isSignedIn.get()){
                     let authResponse = this.auth.currentUser.get().getAuthResponse();
                     this.tokenExpiration = authResponse.expires_at;
+
+                    [this.api, this.adminAPI] = await Promise.all([`${configJSON.configServer}/swagger.json`, `${configJSON.adminServer}/swagger.json`].map(
+                        url => Swagger(url,  {
+                            authorizations: {
+                                googleToken: authResponse.id_token
+                            },
+                            requestInterceptor: () => {
+                                this.progressBar.start();
+                            },
+                            responseInterceptor: (resp) => {
+                                this.progressBar.end();
+                            }
+                        }))
+                    )
 
                     this.login(authResponse.id_token);
 

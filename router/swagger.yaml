@@ -15,7 +15,7 @@ paths:
         type: string
     post:
       summary: Routes the post request to the specified location, according to the webhook \
-        settings from a configuration server 
+        settings from a configuration server
       operationId: route_webhook
       responses:
         default:

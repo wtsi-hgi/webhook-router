@@ -13,6 +13,7 @@ import os
 from .RouteDataMapper import RouteDataMapper
 from .UserLinkDataMapper import UserLinkDataMapper
 from .ConnexionDespatcher import ConnexionDespatcher
+from .StatisticQueryier import StatisticQueryier
 from .errors import *
 from .logging import *
 from .auth import *
@@ -29,20 +30,21 @@ class ConfigServer:
         self._db = db
         self._auth = auth
         proxy_db.initialize(db)
-        self._db.connect()
         db.create_tables([Route, UserLink], True)
 
         user_link_dm = UserLinkDataMapper()
         route_dm = RouteDataMapper(user_link_dm)
+        stat_queryier = StatisticQueryier()
 
         self.depatcher = ConnexionDespatcher(
             self._auth,
             route_dm,
             user_link_dm,
+            stat_queryier,
             logger
         )
 
-        self.app = connexion.App(__name__, specification_dir=".", debug=debug, server='tornado')
+        self.app = connexion.App(__name__, specification_dir=".", server='tornado')
         CORS(self.app.app, origins=f"{config_JSON['frontEnd']}*")
 
         self._set_error_handlers()
@@ -69,7 +71,7 @@ class ConfigServer:
 
         # This is needed, as flask logs aren't propogated to the root logger
         add_file_log_handler(self.app.app.logger)
-    
+
     @staticmethod
     def on_after_request(response):
         logger.log_http_request(response)
@@ -93,6 +95,7 @@ class ConfigServer:
         self._set_error_handler(NotAuthorisedError, 3, "Not Authorised", HTTPStatus.FORBIDDEN)
         self._set_error_handler(InvalidURLError, 4, "Invalid URL in destination", HTTPStatus.BAD_REQUEST)
         self._set_error_handler(InvalidCredentialsError, 5, "Invalid credentials", HTTPStatus.BAD_REQUEST)
+        self._set_error_handler(RouteLinkNotFound, 6, "Route link doesn't exist", HTTPStatus.NOT_FOUND)
 
     def close(self):
         self._db.close()
