@@ -24,6 +24,11 @@ services:
   router:
     volumes:
       - ./router:/router
+    environment:
+      CONFIGSERVER_LOCATION: http://configserver:8080
+      ELATICSEARCH_HOST: elasticsearch
+      ELATICSEARCH_USER: elastic
+      ELATICSEARCH_PASSWORD: changeme
     stdin_open: true
     tty: true
   db:
