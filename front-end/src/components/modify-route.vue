@@ -18,13 +18,10 @@
             <span>
                 Route: "{{configServerFormData.name}}"
             </span>
-            <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#deleteConfirm" style="margin-left: 10px; ">
-                Delete Route</button>
-            <button type="button" v-if="hasUserAddedRoute" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#removeConfirm">
-                Remove from my routes</button>
-            <button type="button" v-else @click="addToMyRoutes" class="btn btn-outline-success btn-sm">
-                Add to my routes
-                </button>
+            <b-btn v-b-modal.deleteModal variant="outline-danger" size="sm" style="margin-left: 10px">Delete Route</b-btn>
+            <!--Note: change this to if-else when https://github.com/bootstrap-vue/bootstrap-vue/issues/1454 is resolved-->
+            <b-btn v-b-modal.removeModal v-show="hasUserAddedRoute" variant="outline-secondary" size="sm">Remove from my routes</b-btn>
+            <b-btn v-show="!hasUserAddedRoute" @click="addToMyRoutes" variant="outline-success" size="sm">Add to my routes</b-btn>
         </h2>
         <hr>
         <div class="form-section">
@@ -77,8 +74,7 @@
             <div class="form-section">
                 <label for="route-destination">Token:</label>
                 <code>{{token}}</code>
-                <button type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal" data-target="#regenerateConfirm">
-                    Regenerate Token</button>
+                <b-btn v-b-modal.regenerateModal variant="outline-danger" size="sm">Regenerate Token</b-btn>
                 <br />
                 <label for="route-destination">UUID:</label>
                 <code>{{uuid}}</code>
@@ -101,70 +97,41 @@
     </div>
 </div>
 
-<div class="modal fade" id="deleteConfirm" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmLabel" aria-hidden="true" ref="deleteModal">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="deleteConfirmLabel">Confirm route deletion</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true" v-html="'&times;'"></span>
-            </button>
-        </div>
-        <div class="modal-body">
-            Are you sure you want to delete "{{configServerFormData.name}}"?
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-danger" @click="deleteRoute">Delete Route</button>
-        </div>
-        </div>
-    </div>
-</div>
+<b-modal
+    id="deleteModal"
+    title="Confirm route deletion"
+    cancel-title="Close"
+    ok-title="Delete Route"
+    ok-variant="danger"
+    @ok="deleteRoute">
+    Are you sure you want to delete "{{configServerFormData.name}}"?
+</b-modal>
 
-<div class="modal fade" id="removeConfirm" tabindex="-1" role="dialog" aria-labelledby="removeConfirmLabel" aria-hidden="true" ref="removeModal">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="removeConfirmLabel">Confirm route removal</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true" v-html="'&times;'"></span>
-            </button>
-        </div>
-        <div class="modal-body">
-            Are you sure you want to remove "{{configServerFormData.name}}" from your routes?
-            <br />
-            <small>This will not delete the route, but remove it from the list of your routes.</small>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-danger" @click="removeRoute">Remove Route</button>
-        </div>
-        </div>
-    </div>
-</div>
+<b-modal
+    id="removeModal"
+    title="Confirm route removal"
+    cancel-title="Close"
+    ok-title="Remove Route"
+    ok-variant="danger"
+    @ok="removeRoute">
+    Are you sure you want to remove "{{configServerFormData.name}}" from your routes?
+    <br />
+    <small>This will not delete the route, but remove it from the list of your routes.</small>
+</b-modal>
 
 
-<div class="modal fade" id="regenerateConfirm" tabindex="-1" role="dialog" aria-labelledby="regenerateConfirmLabel" aria-hidden="true" ref="regenerateModal">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="regenerateConfirmLabel">Confirm token regeneration</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true" v-html="'&times;'"></span>
-            </button>
-        </div>
-        <div class="modal-body">
-            Are you sure you want to regenerate the token of "{{configServerFormData.name}}"?
-            <br />
-            <small>Regenerating tokens will break all links to this route.</small>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-danger" data-dismiss="modal" @click="regenerateToken">Regenerate Token</button>
-        </div>
-        </div>
-</div>
-</div>
+<b-modal
+    id="regenerateModal"
+    title="Confirm token regeneration"
+    cancel-title="Close"
+    ok-title="Regenerate Token"
+    ok-variant="danger"
+    @ok="regenerateToken">
+    Are you sure you want to regenerate the token of "{{configServerFormData.name}}"?
+    <br />
+    <small>Regenerating tokens will break all links to this route.</small>
+</b-modal>
+
 </div>
 </div>
 </template>
@@ -183,7 +150,6 @@ button:hover .clipboard-icon{
 
 <script lang="ts">
 import Vue from "vue";
-import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
 import NavBarComponent from "./whr-navbar.vue";
 import ErrorsComponent from "./errors.vue";
@@ -213,9 +179,6 @@ export default class extends Vue {
     loaded = false;
     routingServerLocation = "";
     $refs: {
-        deleteModal: HTMLElement;
-        removeModal: HTMLElement;
-        regenerateModal: HTMLElement;
         routeLocation: HTMLElement;
         copyButton: HTMLElement;
     }
@@ -249,14 +212,15 @@ export default class extends Vue {
         this.configServerFormData = cloneDeep(formData);
     }
 
-    async deleteRoute() {
+    async deleteRoute(event: any) {
+        event.preventDefault();
         let success = false;
         try {
             await this.api.apis.routes.deleteRoute({uuid: this.uuid});
             success = true;
         }
         finally{
-            await utils.closeModal(this.$refs.deleteModal);
+            await utils.closeModal(event.vueTarget);
         }
 
         if(success){
@@ -278,14 +242,15 @@ export default class extends Vue {
         copyButton.tooltip("hide");
     }
 
-    async removeRoute(){
+    async removeRoute(event){
+        event.preventDefault();
         let success = false;
         try {
             await this.api.apis.links.delete_route_link({uuid: this.uuid});
             success = true;
         }
         finally{
-            await utils.closeModal(this.$refs.removeModal);
+            await utils.closeModal(event.vueTarget);
         }
 
         if(success){
@@ -294,19 +259,25 @@ export default class extends Vue {
     }
 
     async addToMyRoutes(){
-        this.api.apis.links.add_route_link({
+        await this.api.apis.links.add_route_link({
             uuid: this.uuid
         });
 
         this.hasUserAddedRoute = true;
     }
 
-    async regenerateToken() {
-        let resp = await this.api.apis.routes.regenerate_token({
-            uuid: this.uuid
-        })
+    async regenerateToken(event) {
+        event.preventDefault();
+        try {
+            let resp = await this.api.apis.routes.regenerate_token({
+                uuid: this.uuid
+            })
 
-        this.token = resp.obj.token;
+            this.token = resp.obj.token;
+        }
+        finally {
+            await utils.closeModal(event.vueTarget);
+        }
     }
 
     formatError(error: any){
@@ -361,6 +332,9 @@ export default class extends Vue {
         catch(e){
             if(e instanceof Response && e.status == 404){
                 this.hasUserAddedRoute = false;
+            }
+            else{
+                throw e;
             }
         }
     }

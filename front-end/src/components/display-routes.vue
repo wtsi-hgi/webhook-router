@@ -90,7 +90,6 @@
 /// <reference path="../swagger-typings.d.ts" />
 
 import Vue from "vue";
-import * as swaggerAPI from "../api";
 import Component from 'vue-class-component'
 import NavBarComponent from "./whr-navbar.vue";
 import * as utils from "../utils";

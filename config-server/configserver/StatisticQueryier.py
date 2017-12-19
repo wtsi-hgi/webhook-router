@@ -61,7 +61,7 @@ class StatisticQueryier:
 
     def get_many_routes_stats(self, uuids):
         """
-        Batch query of statistics for many routes. Only returns number of successes and failures 
+        Batch query of statistics for many routes. Only returns number of successes and failures
         """
         def get_num_hits(item):
             return item["hits"]["total"]

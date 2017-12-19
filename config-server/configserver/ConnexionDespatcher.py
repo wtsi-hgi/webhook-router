@@ -111,7 +111,7 @@ class ConnexionDespatcher:
         new_route = copy.deepcopy(new_route)
         new_route["no_ssl_verification"]=new_route.get("no_ssl_verification", False)
         new_route["rate_limit"]=new_route.get("rate_limit", 30)
-        
+
         try:
             url_ob = urlparse(new_route["destination"])
         except SyntaxError:
@@ -130,7 +130,7 @@ class ConnexionDespatcher:
     def add_route_link(self, user: str, uuid: str):
         # This also checks if the uuid exists
         route = self._route_data_mapper.get(uuid)
-        
+
         self._user_link_data_mapper.add_user_link(user, uuid)
 
         return route
@@ -146,14 +146,14 @@ class ConnexionDespatcher:
 
         for (i, stat) in enumerate(stats):
             stat["uuid"] = uuids[i]
-        
+
         return stats
 
     def get_route_link(self, user: str, uuid: str):
         if not self._user_link_data_mapper.has_user_link(user, uuid):
             raise RouteLinkNotFound()
 
-        return get_route_json(self._route_data_mapper.get(uuid))
+        return self._route_data_mapper.get(uuid)
 
     def get_route_logs(self, uuid: str):
         # make sure the uuid is actually valid

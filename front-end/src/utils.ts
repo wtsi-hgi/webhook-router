@@ -1,13 +1,15 @@
+import { Component } from "vue-router/types/router";
+
 export function delay(time: number){
     return new Promise((resolve, reject) => {
         setTimeout(resolve, time);
     })
 }
 
-export function closeModal(modal: HTMLElement){
+export function closeModal(vueTarget: any){
     return new Promise((resolve, reject) => {
-        $(modal).modal("hide")
-        $(modal).one("hidden.bs.modal", () => {
+        vueTarget.hide();
+        vueTarget.$once("hidden", () => {
             resolve();
         })
     })

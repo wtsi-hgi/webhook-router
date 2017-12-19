@@ -51,7 +51,7 @@ export default class extends Vue {
     @Prop() adminAPI: SwaggerAPI<BasicAPI>;
 
     async postForm(data: any){
-        let isValid = (await this.adminAPI.apis.default.is_url_valid({
+        /*let isValid = (await this.adminAPI.apis.default.is_url_valid({
             url: data.destination
         })).obj;
 
@@ -59,7 +59,7 @@ export default class extends Vue {
             console.error("Incorrect route");
 
             return;
-        }
+        }*/
 
         let newRoute = (await this.api.apis.routes.create_route({
             new_route: <any>pick(data, utils.formAttributes)

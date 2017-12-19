@@ -12,7 +12,7 @@
 </whr-navbar>
     <br />
     <div class="container-fluid">
-        <p>Error: Invalid URL</p>
+        <p>404: Not Found</p>
     </div>
 </div>
 </template>
