@@ -6,8 +6,8 @@ import httpProxy = require("http-proxy");
 var route = require("router")();
 import argparse = require("argparse");
 import winston = require("winston");
-var Limiter = require("ratelimit.js").RateLimit;
 
+// Remove the default console logging, and readd it with colored output
 winston.remove(winston.transports.Console);
 
 const logger = new winston.Logger({
@@ -26,9 +26,12 @@ const INVALID_ROUTE_TOKEN_ERROR = 2;
 /** Log code for a successful log in elasticsearch */
 const SUCCESS_LOG_CODE = 1;
 
+// Functions for writing errors as a response.
+var writeBadRequest = (resp: any) => writeError("400 Bad Request", 400, resp);
 var writeNotFound = (resp: any) => writeError("404 Not found", 404, resp);
 var writeMethodNotAllowed = (resp: any) => writeError("405 Method Not Allowed", 405, resp);
 var writeInternalError = (resp: any) => writeError("500 Internal server error", 500, resp);
+var writeInternalErrorFromConfigServer = (resp: any) => writeError("500 Internal server error from configserver", 500, resp);
 var writeBadGateway = (resp: any) => writeError("502 Bad Gateway", 502, resp);
 var writeServiceUnavailable = (resp: any) => writeError("503 Service Unavailable", 503, resp);
 
@@ -82,11 +85,11 @@ class RouteMethodNotAllowed extends AbstractRouterError{
 }
 
 class ConfigServerError extends AbstractRouterError{
-    constructor(error: string){
+    constructor(error: any){
         super("Config server error.", {error})
     }
 
-    writeHttpResponse = writeInternalError;
+    writeHttpResponse = writeInternalErrorFromConfigServer;
 }
 
 class RoutingError extends AbstractRouterError{
@@ -105,6 +108,14 @@ class TooManyRequestsError extends AbstractRouterError{
     writeHttpResponse = writeServiceUnavailable;
 }
 
+class InvalidParametersError extends AbstractRouterError{
+    constructor(attemptedToken: string){
+        super(`Invalid token access: ${attemptedToken}, this contains non URL safe characters.`, {attemptedToken});
+    }
+
+    writeHttpResponse = writeBadRequest;
+}
+
 export interface Route {
     "name": string;
     "destination": string;
@@ -116,6 +127,10 @@ export interface Route {
 
 async function getRouteFromToken(token: string){
     try{
+        if(encodeURIComponent(token) !== token){
+            throw new InvalidParametersError(token);
+        }
+
         var configServerJSON = (await axios.get(`${args.configServer}/routes/token/${token}`)).data
     }
     catch(error){
@@ -137,7 +152,7 @@ async function getRouteFromToken(token: string){
     return <Route>configServerJSON;
 }
 
-let proxy = httpProxy.createProxyServer(<any>{
+var proxy = httpProxy.createProxyServer(<any>{
     changeOrigin: true,
     preserveHeaderKeyCase: true,
     ignorePath: true
@@ -175,8 +190,6 @@ function delay(time: number){
     })
 }
 
-const RATE_LIMIT = 30;
-
 var limitTable = new Map<string, number>();
 setInterval(() => {
     for(let [key, _] of limitTable){
@@ -189,12 +202,13 @@ function isRateLimited(uuid: string, rateLimit: number){
         limitTable.set(uuid, 1);
     }
     else{
-        limitTable.set(uuid, <number>limitTable.get(uuid) + 1)
+        limitTable.set(uuid, <number>limitTable.get(uuid) + 1);
     }
-    
-    return <number>limitTable.get(uuid) > RATE_LIMIT
+
+    return <number>limitTable.get(uuid) > rateLimit;
 }
 
+// NOTE: Need to catch all methods, so we can log incorrect methods being used
 route.all("/:token", (request: http.IncomingMessage & {params: any}, response: http.ServerResponse) => {
     let token = request.params.token;
 
@@ -214,7 +228,7 @@ route.all("/:token", (request: http.IncomingMessage & {params: any}, response: h
 
             // Warn if the request takes longer than a timeout
             let timeoutSymbol = Symbol("timeout");
-            
+
             if(await Promise.race([
                 await routePromise,
                 (async () => {
@@ -227,9 +241,9 @@ route.all("/:token", (request: http.IncomingMessage & {params: any}, response: h
                     ...getRequestLogData(request)
                 })
             }
-            
+
             await routePromise;
-            
+
             logger.info("Correctly routed", {
                 uuid: route.uuid,
                 destination: route.destination,
@@ -283,7 +297,7 @@ http.createServer((request, response) => {
             writeNotFound(response)
         }
         else{
-            handleInternalError(error, request, response);            
+            handleInternalError(error, request, response);
         }
     })
 }).listen(args.port, args.host);
