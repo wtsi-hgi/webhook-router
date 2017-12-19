@@ -3,11 +3,11 @@ import https = require('https');
 import url = require("url");
 import axios from "axios";
 import httpProxy = require("http-proxy");
-var route = require("router")();
+const route = require("router")();
 import argparse = require("argparse");
 import winston = require("winston");
 
-// Remove the default console logging, and readd it with colored output
+// Remove the default console logging, and re-add it with colored output
 winston.remove(winston.transports.Console);
 
 const logger = new winston.Logger({
@@ -27,13 +27,13 @@ const INVALID_ROUTE_TOKEN_ERROR = 2;
 const SUCCESS_LOG_CODE = 1;
 
 // Functions for writing errors as a response.
-var writeBadRequest = (resp: any) => writeError("400 Bad Request", 400, resp);
-var writeNotFound = (resp: any) => writeError("404 Not found", 404, resp);
-var writeMethodNotAllowed = (resp: any) => writeError("405 Method Not Allowed", 405, resp);
-var writeInternalError = (resp: any) => writeError("500 Internal server error", 500, resp);
-var writeInternalErrorFromConfigServer = (resp: any) => writeError("500 Internal server error from configserver", 500, resp);
-var writeBadGateway = (resp: any) => writeError("502 Bad Gateway", 502, resp);
-var writeServiceUnavailable = (resp: any) => writeError("503 Service Unavailable", 503, resp);
+const writeBadRequest = (resp: any) => writeError("400 Bad Request", 400, resp);
+const writeNotFound = (resp: any) => writeError("404 Not found", 404, resp);
+const writeMethodNotAllowed = (resp: any) => writeError("405 Method Not Allowed", 405, resp);
+const writeInternalError = (resp: any) => writeError("500 Internal server error", 500, resp);
+const writeInternalErrorFromConfigServer = (resp: any) => writeError("500 Internal server error from configserver", 500, resp);
+const writeBadGateway = (resp: any) => writeError("502 Bad Gateway", 502, resp);
+const writeServiceUnavailable = (resp: any) => writeError("503 Service Unavailable", 503, resp);
 
 function writeError(message: string, code: number, response: http.ServerResponse){
     response.writeHead(code, {
@@ -152,7 +152,7 @@ async function getRouteFromToken(token: string){
     return <Route>configServerJSON;
 }
 
-var proxy = httpProxy.createProxyServer(<any>{
+const proxy = httpProxy.createProxyServer(<any>{
     changeOrigin: true,
     preserveHeaderKeyCase: true,
     ignorePath: true
@@ -190,7 +190,7 @@ function delay(time: number){
     })
 }
 
-var limitTable = new Map<string, number>();
+const limitTable = new Map<string, number>();
 setInterval(() => {
     for(let [key, _] of limitTable){
         limitTable.set(key, 0);
@@ -210,11 +210,11 @@ function isRateLimited(uuid: string, rateLimit: number){
 
 // NOTE: Need to catch all methods, so we can log incorrect methods being used
 route.all("/:token", (request: http.IncomingMessage & {params: any}, response: http.ServerResponse) => {
-    let token = request.params.token;
+    const token = request.params.token;
 
     (async () => {
         try{
-            let route = await getRouteFromToken(token);
+            const route = await getRouteFromToken(token);
 
             if(request.method != "POST"){
                 throw new RouteMethodNotAllowed(route.uuid, request.method || "<METHOD MISSING>");
@@ -224,10 +224,10 @@ route.all("/:token", (request: http.IncomingMessage & {params: any}, response: h
                 throw new TooManyRequestsError(route.uuid, route.rate_limit);
             }
 
-            let routePromise = routeRequest(request, response, route);
+            const routePromise = routeRequest(request, response, route);
 
             // Warn if the request takes longer than a timeout
-            let timeoutSymbol = Symbol("timeout");
+            const timeoutSymbol = Symbol("timeout");
 
             if(await Promise.race([
                 await routePromise,
@@ -274,7 +274,7 @@ function handleInternalError(error: Error, request: http.IncomingMessage, respon
     writeInternalError(response);
 }
 
-let parser = new argparse.ArgumentParser({
+const parser = new argparse.ArgumentParser({
     description: "Webhook router"
 })
 parser.addArgument(["--port"], {help: "Port to serve the request", required: true});
@@ -282,7 +282,7 @@ parser.addArgument(["--host"], {help: "Host to serve the request from", defaultV
 parser.addArgument(["--warningDelay"], {help: "How many milliseconds before a long request warning is issued",
     defaultValue: 10000, type: "int"});
 parser.addArgument(["--configServer"], {help: "Ip Address of the config server", required: true});
-let args = parser.parseArgs();
+const args = parser.parseArgs();
 
 
 http.createServer((request, response) => {
