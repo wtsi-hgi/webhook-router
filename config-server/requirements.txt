@@ -4,5 +4,6 @@ google_auth
 flask-cors
 tornado
 python-json-logger
-elasticsearch
+elasticsearch>=6.0.0,<7.0.0
+elasticsearch-dsl>=6.0.0,<7.0.0
 psycopg2

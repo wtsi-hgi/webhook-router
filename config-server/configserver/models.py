@@ -16,9 +16,9 @@ class Route(Model):
     class Meta:
         database = proxy_db
 
-def get_route_json(route: Route):
+def extract_route_dict(route: Route):
     """
-    Gets the json respresentation of given route, for returning to the user
+    Returns a dict of route properties from a instance with route properties
     """
     public_fields = ["uuid", "name", "destination", "token", "no_ssl_verification", "rate_limit"]
     new_ob = {}

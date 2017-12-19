@@ -1,10 +1,13 @@
 from elasticsearch import Elasticsearch
+from elasticsearch_dsl import Search, MultiSearch
+from .models import extract_route_dict
 import os
 import json
 
 class StatisticQueryier:
     def __init__(self):
         self._es = Elasticsearch(f"http://elastic:changeme@elasticsearch:9200")
+        self._es_search = Search(using=self._es, index="whr_routing_server")
 
     @staticmethod
     def _create_uuid_query_string(uuid, query_success):
@@ -20,26 +23,20 @@ class StatisticQueryier:
             }
         }
 
+    def _logs_query(self, uuid, success):
+        return self._es_search \
+            .query("match", uuid=uuid) \
+            .query("match", success=False)
+
     def get_route_logs(self, uuid: str):
         """
         Get failure logs from elasticsearch
         """
-        def extract_log(log):
-            """Extract the correct output information from a log in elasticsearch"""
-            return log["_source"]
 
-        # NOTE: this function only returns the 10 most recent searches
+        # NOTE: this only returns the 10 most recent searches
         # see https://elasticsearch-py.readthedocs.io/en/master/api.html#elasticsearch.Elasticsearch.search
-        resp = self._es.search(
-            index="whr_routing_server",
-            body=StatisticQueryier.create_query_ob(uuid, False),
-            sort="@timestamp:desc"
-        )
+        return self.logs_query(uuid, False).sort("-@timestamp").execute()
 
-        logs = list(map(extract_log, resp["hits"]["hits"]))
-
-        return logs
-    
     def get_route_stats(self, uuid: str):
         """
         Gets statistics for one route
@@ -51,9 +48,9 @@ class StatisticQueryier:
                 body=StatisticQueryier.create_query_ob(uuid, query_success)
             )
 
-        successes = es_query(self._es.count, True)["count"]
-        failures = es_query(self._es.count, False)["count"]
-        
+        successes = self.logs_query(uuid, False).params(search_type="count").count()
+        failures = self.logs_query(uuid, True).params(search_type="count").count()
+
         return {
             "successes": successes,
             "failures": failures

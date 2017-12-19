@@ -4,7 +4,7 @@ import uuid
 
 from peewee import DoesNotExist
 
-from .models import Route, get_route_json
+from .models import Route, extract_route_dict
 from .UserLinkDataMapper import UserLinkDataMapper
 from .errors import *
 
@@ -54,7 +54,7 @@ class RouteDataMapper:
             route.delete_instance()
 
     def get(self, uuid: str):
-        return get_route_json(self._get_route_from_uuid(uuid))
+        return extract_route_dict(self._get_route_from_uuid(uuid))
 
     def get_by_token(self, token: str):
         token_id = token[:TOKEN_ID_LENGTH]
@@ -64,7 +64,7 @@ class RouteDataMapper:
             raise InvalidRouteTokenError()
         else:
             if secrets.compare_digest(routes[0].token, token):
-                return get_route_json(routes[0])
+                return extract_route_dict(routes[0])
             else:
                 raise InvalidRouteTokenError()
 
@@ -82,7 +82,7 @@ class RouteDataMapper:
 
         self._user_link_datamapper.add_user_link(user, route_uuid)
 
-        return get_route_json(route)
+        return extract_route_dict(route)
 
     def regenerate_token(self, uuid: str):
         route = self._get_route_from_uuid(uuid)
@@ -92,6 +92,6 @@ class RouteDataMapper:
         route.save()
 
         return {
-            **get_route_json(route),
+            **extract_route_dict(route),
             "token": new_token
         }

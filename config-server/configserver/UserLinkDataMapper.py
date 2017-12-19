@@ -1,7 +1,7 @@
 from abc import ABC, ABCMeta
 import logging
 from .errors import *
-from .models import UserLink, Route, get_route_json
+from .models import UserLink, Route, extract_route_dict
 
 from peewee import DoesNotExist
 
@@ -30,13 +30,13 @@ class UserLinkDataMapper:
             self._try_get_link(user, uuid)
         except DoesNotExist:
             return False
-        
+
         return True
 
     def get_users_links(self, user: str):
         routes = Route.select().join(UserLink).where(UserLink.user == user)
 
-        return [get_route_json(route) for route in routes]
+        return [extract_route_dict(route) for route in routes]
 
     def remove_user_link(self, user: str, uuid: str):
         try:

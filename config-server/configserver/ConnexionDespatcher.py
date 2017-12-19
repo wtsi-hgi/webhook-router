@@ -9,7 +9,7 @@ from .UserLinkDataMapper import UserLinkDataMapper
 from .logging import ConfigServerLogger
 from .StatisticQueryier import StatisticQueryier
 from .errors import *
-from .models import get_route_json
+from .models import extract_route_dict
 
 
 # Configuration for mapping from the data mapper to the connextion object
