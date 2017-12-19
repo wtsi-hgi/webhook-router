@@ -18,7 +18,7 @@ function delay(time: number){
 }
 
 beforeAll(async () => {
-    configServer = cp.spawn(`cd ../config-server && python -m configserver --port ${configPort} --host 127.0.0.1 --debug`, 
+    configServer = cp.spawn(`cd ../config-server && python -m configserver --port ${configPort} --host 127.0.0.1 --debug`,
         [], {shell: true});
     routerServer = cp.spawn(`node ./router.js --port ${routerPort} --host 127.0.0.1 --configServer http://127.0.0.1:${configPort}`,
         [], {shell: true});
@@ -43,7 +43,7 @@ async function createRoute(dest: string, options = {}){
 
 async function testRoutingToAddress(location: string, options = {}){
     let token = await createRoute(location, options);
-    
+
     return await axios.post(`http://127.0.0.1:${routerPort}/${token}`)
 }
 
@@ -56,18 +56,18 @@ it("Routes to test server", async () => {
 describe("no_ssl_verification", () => {
     it("= false fails with insecure site", async () => {
         let error: undefined | AxiosError;
-        
+
         try{
             await testRoutingToAddress(`https://self-signed.badssl.com/`)
         }
         catch(e){
             error = e;
         }
-    
+
         expect(error).not.toBeUndefined;
         expect(error!.response!.status).toBe(502);
     })
-    
+
     it("= true succeeds with insecure site", async () => {
         try{
             await testRoutingToAddress(`https://self-signed.badssl.com/`, {
@@ -84,7 +84,7 @@ describe("no_ssl_verification", () => {
 describe("httpbin", () => {
     it("routes to http", async () => {
         let resp = await testRoutingToAddress("http://httpbin.org/post")
-        
+
         expect(resp.data).toBeTruthy;
         expect(resp.status).toEqual(200);
     })
@@ -116,7 +116,7 @@ async function timeToken(token: string){
 /** Concurrent mapping over promises */
 async function promiseMap<InputType, OutputType>(array: InputType[], promise: (item: InputType) => Promise<OutputType>){
     let result = <OutputType[]>[];
-    
+
     await Promise.all(array.map((item, index) => {
         return promise(item).then(returnItem => {
             result[index] = returnItem
@@ -138,13 +138,17 @@ it("can route at least 5 routes per second", async () => {
     expect(timeTaken).toBeLessThan(1000);
 })
 
+const numbersTo = (limit: number) => Array.from(Array(limit).keys())
+
 it("rate limits requests", async () => {
-    let token = await createRoute(`http://127.0.0.1:${receiverPort}`);
-    let responses = await Promise.all(Array.from(Array(60).keys()).map(_ => axios.post(`http://127.0.0.1:${routerPort}/${token}`, undefined, {
+    let token = await createRoute(`http://127.0.0.1:${receiverPort}`, {
+        rateLimit: 30
+    });
+    let responses = await Promise.all(numbersTo(60).map(_ => axios.post(`http://127.0.0.1:${routerPort}/${token}`, undefined, {
         validateStatus: () => true // get the status codes back
     })));
 
-    expect(responses.map(x => x.status)).toContain(429 /*= Too Many Requests*/)
+    expect(responses.map(x => x.status)).toContain(503 /*= Service Unavailable*/)
 })
 
 afterAll(() => {
