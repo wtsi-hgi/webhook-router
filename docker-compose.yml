@@ -34,6 +34,9 @@ services:
       - "elasticsearch"
       - "configserver"
     networks: [app]
+    environment:
+      CONFIGSERVER_LOCATION:
+      ELATICSEARCH_HOST:
   firewallconfig:
     build: firewall-config
     ports:
