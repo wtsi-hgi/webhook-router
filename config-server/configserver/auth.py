@@ -1,11 +1,13 @@
 """Functions for authentication"""
 
-import flask
-from .errors import *
 import functools
 
-from google.oauth2 import id_token
+import flask
 from google.auth.transport import requests
+from google.oauth2 import id_token
+
+from .errors import *
+
 
 def test_auth():
     """

@@ -1,24 +1,23 @@
 import argparse
+import json
+import os
 from functools import partial
-from typing import Type, Callable
+from http import HTTPStatus
+from typing import Callable, Type
 
 import connexion
 import flask
-from peewee import SqliteDatabase, Database, PostgresqlDatabase
-from flask_cors import CORS, core
-from http import HTTPStatus
-import json
-import os
+from flask_cors import CORS
+from peewee import Database, PostgresqlDatabase, SqliteDatabase, OperationalError
 
-from .RouteDataMapper import RouteDataMapper
-from .UserLinkDataMapper import UserLinkDataMapper
+from .auth import *
 from .ConnexionDespatcher import ConnexionDespatcher
-from .StatisticQueryier import StatisticQueryier
 from .errors import *
 from .logging import *
-from .auth import *
-
-from .models import proxy_db, UserLink, Route
+from .models import Route, UserLink, proxy_db
+from .RouteDataMapper import RouteDataMapper
+from .StatisticQueryier import StatisticQueryier
+from .UserLinkDataMapper import UserLinkDataMapper
 
 logger = ConfigServerLogger()
 

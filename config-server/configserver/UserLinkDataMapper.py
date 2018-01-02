@@ -1,9 +1,11 @@
-from abc import ABC, ABCMeta
 import logging
-from .errors import *
-from .models import UserLink, Route, extract_route_dict
+from abc import ABC, ABCMeta
 
 from peewee import DoesNotExist
+
+from .errors import *
+from .models import Route, UserLink, extract_route_dict
+
 
 class UserLinkDataMapper:
     """

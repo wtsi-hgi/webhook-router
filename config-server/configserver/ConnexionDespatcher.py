@@ -1,16 +1,15 @@
-from functools import wraps
-from typing import Type, Callable
-from urllib.parse import urlparse
-from http import HTTPStatus
 import copy
+from functools import wraps
+from http import HTTPStatus
+from typing import Callable, Type
+from urllib.parse import urlparse
 
-from .RouteDataMapper import RouteDataMapper
-from .UserLinkDataMapper import UserLinkDataMapper
-from .logging import ConfigServerLogger
-from .StatisticQueryier import StatisticQueryier
 from .errors import *
+from .logging import ConfigServerLogger
 from .models import extract_route_dict
-
+from .RouteDataMapper import RouteDataMapper
+from .StatisticQueryier import StatisticQueryier
+from .UserLinkDataMapper import UserLinkDataMapper
 
 # Configuration for mapping from the data mapper to the connextion object
 route_data_mapper_mappings = {

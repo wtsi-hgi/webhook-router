@@ -1,6 +1,7 @@
 import logging
-from pythonjsonlogger import jsonlogger
+
 import flask
+from pythonjsonlogger import jsonlogger
 
 LOGGING_CONFIG = "(asctime) (message) (levelname)"
 
@@ -31,7 +32,7 @@ class ConfigServerLogger:
         self.info = logger.info
         self.warning = logger.warning
         self.error = logger.error
-    
+
     def log_http_request(self, response: flask.Response):
         request = flask.request
         if response.status_code < 400:
@@ -40,7 +41,7 @@ class ConfigServerLogger:
             log_method = self.logger.warning
         else:
             log_method = self.logger.error
-        
+
         log_method("Http request", extra={
             "method": request.method,
             "url": request.url,
@@ -49,7 +50,6 @@ class ConfigServerLogger:
             "status_code": response.status_code
         })
 
-    
     def log_swagger_request(self, method_name, swagger_params, response, user):
         self.logger.info("Swagger access", extra={
             "method_name": method_name,

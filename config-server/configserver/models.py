@@ -1,5 +1,6 @@
-from peewee import CharField, Model, SqliteDatabase, Database, DoesNotExist, ForeignKeyField, BooleanField, IntegerField
-from peewee import Proxy
+from peewee import (BooleanField, CharField, Database, DoesNotExist,
+                    ForeignKeyField, IntegerField, Model, Proxy,
+                    SqliteDatabase)
 
 proxy_db = Proxy()
 

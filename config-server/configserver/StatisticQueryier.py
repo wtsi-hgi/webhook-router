@@ -1,9 +1,12 @@
-from elasticsearch import Elasticsearch
-from elasticsearch_dsl import Search, MultiSearch
-from .models import extract_route_dict
-from typing import List
-import os
 import json
+import os
+from typing import List
+
+from elasticsearch import Elasticsearch
+from elasticsearch_dsl import MultiSearch, Search
+
+from .models import extract_route_dict
+
 
 class StatisticQueryier:
     def __init__(self):

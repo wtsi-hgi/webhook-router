@@ -4,9 +4,9 @@ import uuid
 
 from peewee import DoesNotExist
 
+from .errors import *
 from .models import Route, extract_route_dict
 from .UserLinkDataMapper import UserLinkDataMapper
-from .errors import *
 
 logger = logging.getLogger("config_server.route_data_mapper")
 
