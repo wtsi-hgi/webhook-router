@@ -4,6 +4,7 @@ import os
 from functools import partial
 from http import HTTPStatus
 from typing import Callable, Type
+import time
 
 import connexion
 import flask
@@ -20,6 +21,7 @@ from .StatisticQueryier import StatisticQueryier
 from .UserLinkDataMapper import UserLinkDataMapper
 
 logger = ConfigServerLogger()
+DB_CONNECT_RETRY_ATTEMPTS = 10
 
 class ConfigServer:
     """
@@ -28,8 +30,29 @@ class ConfigServer:
     def __init__(self, debug: bool, db: Database, auth: Callable[[], str], config_JSON: any):
         self._db = db
         self._auth = auth
+
+        # wait until the database is up until we create tables if not present
+        # and start the server
+        for i in range(DB_CONNECT_RETRY_ATTEMPTS):
+            try:
+                db.connect()
+            except OperationalError:
+                logger.warning("Failed connecting to database.", extra={
+                    "attempts": i + 1,
+                    "maximum_attempts": DB_CONNECT_RETRY_ATTEMPTS
+                })
+
+                if i + 1 == DB_CONNECT_RETRY_ATTEMPTS - 1:
+                    raise
+            else:
+                logger.info("Connected to the database.")
+                break
+
+            time.sleep(1)
+
         proxy_db.initialize(db)
         db.create_tables([Route, UserLink], True)
+        db.close()
 
         user_link_dm = UserLinkDataMapper()
         route_dm = RouteDataMapper(user_link_dm)
