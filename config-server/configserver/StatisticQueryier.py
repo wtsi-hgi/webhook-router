@@ -9,8 +9,8 @@ from .models import extract_route_dict
 
 
 class StatisticQueryier:
-    def __init__(self):
-        self._es = Elasticsearch(f"http://elastic:changeme@elasticsearch:9200")
+    def __init__(self, elasticurl: str):
+        self._es = Elasticsearch(elasticurl)
         self._index = "whr_routing_server"
 
     def _logs_query(self, uuid: str, success: bool):

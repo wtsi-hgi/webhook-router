@@ -109,3 +109,5 @@ db.db
 **/node_modules
 config-server/log-track
 router/log-track
+
+.htpasswd
