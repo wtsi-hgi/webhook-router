@@ -141,7 +141,7 @@ export default class AdminPanel extends Vue {
             if(!rule.cidr){
                 throw Error("CIDR need to be defined");
             }
-            
+
             return {
                 from_port,
                 to_port,

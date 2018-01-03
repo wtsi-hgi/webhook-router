@@ -67,9 +67,9 @@ declare var SwaggerCore: {
     buildRequest(params: object): any;
     clearCache(): any;
     <APIType extends BasicAPI = BasicAPI>(url: string, options?: SwaggerSpec): Promise<SwaggerAPI<APIType>>;
-    <APIType extends BasicAPI = BasicAPI>(options: SwaggerSpec): Promise<SwaggerAPI<APIType>>;    
+    <APIType extends BasicAPI = BasicAPI>(options: SwaggerSpec): Promise<SwaggerAPI<APIType>>;
 }
 
 declare module "swagger-client" {
-    export = SwaggerCore;
+    export default SwaggerCore;
 }

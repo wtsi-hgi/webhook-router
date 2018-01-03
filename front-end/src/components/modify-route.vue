@@ -133,7 +133,6 @@
 </b-modal>
 
 </div>
-</div>
 </template>
 <style>
 .form-section{
@@ -299,7 +298,7 @@ export default class extends Vue {
     }
 
     async displayRouteStats(){
-        let [stats, logs] = <[swaggerAPI.RouteStatistics, swaggerAPI.RoutesLogs]>(await Promise.all([
+        let [stats, logs] = <[any, any]>(await Promise.all([
             await this.api.apis.stats.get_route_stats({
                 uuid: this.uuid
             }),

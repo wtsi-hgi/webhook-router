@@ -23,7 +23,7 @@
                 <input class="form-check-input" type="radio" name="example_route_radio" value="uuid" v-model="radioSelect">
                 <label for="route-name">UUID:</label>
                 <input type="text" required class="form-control" placeholder="Route UUID"
-                    id="route-name" v-model="uuid" required :disabled="radioSelect == 'token'" ref="routeUUIDInput" autofocus>
+                    id="route-name" v-model="uuid" :disabled="radioSelect == 'token'" ref="routeUUIDInput" autofocus>
             </div>
             <br />
             <b>OR</b>

@@ -107,7 +107,7 @@ import Swagger from 'swagger-client';
     }
 })
 export default class extends Vue {
-    routes: (swaggerAPI.Route & {stats: swaggerAPI.RouteStatistics})[] = []
+    routes: any[] = []
 
     loaded = false;
 
@@ -121,7 +121,7 @@ export default class extends Vue {
     async mounted(){
         let statsError: undefined | string;
 
-        let [routes, stats] = <[swaggerAPI.Routes, swaggerAPI.RoutesStatistics]>((await Promise.all([
+        let [routes, stats] = <[any, any]>((await Promise.all([
             await this.api.apis.routes.get_all_routes(),
             await this.api.apis.stats.get_all_routes_stats().catch(e => {statsError = e; throw e;})
         ])).map(x => x.obj));

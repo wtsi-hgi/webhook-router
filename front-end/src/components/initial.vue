@@ -136,13 +136,13 @@ export default class extends Vue {
 
         this.progressBar.end();
     }
-    
+
     async mounted() {
         this.progressBar.start();
         window.addEventListener("unhandledrejection", async (e) => {
             this.onError(await this.getErrorString((<any>e).reason));
         })
-        
+
         window.addEventListener("error", async (e) => {
             this.onError(await this.getErrorString(e));
         })
