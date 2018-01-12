@@ -3,6 +3,7 @@ from functools import wraps
 from http import HTTPStatus
 from typing import Callable, Type
 from urllib.parse import urlparse
+import flask
 
 from .errors import *
 from .logging import ConfigServerLogger
@@ -24,10 +25,6 @@ user_link_data_mapper_mapppings = {
     "get_all_routes": "get_users_links"
 }
 
-ignore_auth = [
-    "get_by_token"
-]
-
 # Which functions to automatically add status codes to
 # PR for this: https://github.com/zalando/connexion/issues/539
 status_codes = {
@@ -38,18 +35,27 @@ status_codes = {
     "delete_route_link": 204
 }
 
+def test_auth():
+    """
+    Test auth function
+    """
+    try:
+        return flask.request.headers.get("user", "test_user@example.com")
+    except:
+        return "test_user@example.com"
+
 class ConnexionDespatcher:
     """
     Class, who's main function is resolve_name (see below for docs of that function).
 
     Dispaches to the RouteDataMapper, UserLinkDataMapper, and StatisticQueryier.
     """
-    def __init__(self,  auth: Callable[[], str],
+    def __init__(self,  use_test_auth: bool,
                         route_data_mapper: RouteDataMapper,
                         user_link_data_mapper: UserLinkDataMapper,
                         statistic_queryier: StatisticQueryier,
                         logger: ConfigServerLogger):
-        self._auth = auth
+        self._use_test_auth = use_test_auth
         self._route_data_mapper = route_data_mapper
         self._user_link_data_mapper = user_link_data_mapper
         self._statistic_queryier = statistic_queryier
@@ -78,15 +84,17 @@ class ConnexionDespatcher:
 
             This also automatically adds NO_CONTENT if needed.
             """
-            user = "<NONE>" # for logging unauthed requests
+
             try:
-                if name not in ignore_auth:
-                    user = self._auth()
+                if self._use_test_auth:
+                    user = test_auth()
+
                     if "user" in func.__code__.co_varnames:
-                        resp = func(user=user, *args, **kwargs)
+                        resp = func(*args, user=user, **kwargs)
                     else:
                         resp = func(*args, **kwargs)
                 else:
+                    user = kwargs["user"]
                     resp = func(*args, **kwargs)
 
                 code = status_codes.get(name)

@@ -27,9 +27,8 @@ class ConfigServer:
     """
     Main class for serving requests
     """
-    def __init__(self, debug: bool, db: Database, auth: Callable[[], str], config_JSON: any):
+    def __init__(self, use_test_auth: bool, db: Database, config_JSON: any):
         self._db = db
-        self._auth = auth
 
         # wait until the database is up until we create tables if not present
         # and start the server
@@ -59,14 +58,14 @@ class ConfigServer:
         stat_queryier = StatisticQueryier(f"http://{os.environ['ELASTICSEARCH_USER']}:{os.environ['ELASTICSEARCH_PASSWORD']}@{os.environ['ELASTICSEARCH_HOST']}:9200")
 
         self.depatcher = ConnexionDespatcher(
-            self._auth,
+            use_test_auth,
             route_dm,
             user_link_dm,
             stat_queryier,
             logger
         )
 
-        self.app = connexion.App(__name__, specification_dir=".", server='tornado')
+        self.app = connexion.App(__name__, specification_dir=".", server='tornado', auth_all_paths=(not use_test_auth))
         CORS(self.app.app, origins=f"{config_JSON['frontEnd']}*")
 
         self._set_error_handlers()
@@ -74,10 +73,20 @@ class ConfigServer:
 
         self.app.app.after_request(self.on_after_request)
 
+        sanger_security = {
+            "name": "googleOAuth",
+            "auth_url": "https://accounts.google.com/o/oauth2/auth",
+            "token_url": "https://accounts.google.com/o/oauth2/tokeninfo"
+        }
+
         self.app.add_api(
             '../swagger.yaml',
             resolver=connexion.Resolver(self.depatcher.resolve_name),
-            validate_responses=True
+            validate_responses=True,
+            arguments={
+                "securities": [] if use_test_auth else sanger_security,
+                "use_security": not use_test_auth
+            }
         )
 
     def _setup_logging(self):
@@ -135,11 +144,10 @@ def start_server(debug: bool, port: int, host: str, config_JSON: any):
     client_id = config_JSON.get("clientId", None)
 
     if not debug and not client_id:
-        raise TypeError("server: main(...) - debug=False requires client_id to have a value")
+        raise TypeError("server: main(...) - test=False requires client_id to have a value")
     server = ConfigServer(
-        debug=debug,
+        use_test_auth=debug,
         db=SqliteDatabase('db.db') if debug else get_postgres_db(),
-        auth=test_auth if debug else partial(google_auth, client_id),
         config_JSON=config_JSON
     )
 
@@ -152,7 +160,7 @@ def start_server(debug: bool, port: int, host: str, config_JSON: any):
 
 def main():
     parser = argparse.ArgumentParser(description='Generates CWL files from the GATK documentation')
-    parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
+    parser.add_argument("--test", help="Enable debugging mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
     parser.add_argument("--config_JSON", help="Location of a JSON file which contains non secret configuration information", default="config.json")

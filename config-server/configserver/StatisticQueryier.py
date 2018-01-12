@@ -27,7 +27,7 @@ class StatisticQueryier:
 
         # NOTE: this only returns the 10 most recent searches
         # see https://elasticsearch-py.readthedocs.io/en/master/api.html#elasticsearch.Elasticsearch.search
-        return self._logs_query(uuid, False).sort("-@timestamp").execute()
+        return [x for x in self._logs_query(uuid, False).sort("-@timestamp").execute().hits]
 
     def get_route_stats(self, uuid: str):
         """
@@ -50,8 +50,8 @@ class StatisticQueryier:
         msearch = MultiSearch(using=self._es, index=self._index)
 
         for uuid in uuids:
-            msearch.add(self._logs_query(uuid, True).count())
-            msearch.add(self._logs_query(uuid, False).count())
+            msearch = msearch.add(self._logs_query(uuid, True))
+            msearch = msearch.add(self._logs_query(uuid, False))
 
         responses = msearch.execute()
 
@@ -60,8 +60,8 @@ class StatisticQueryier:
         route_stats = []
         for i in range(len(uuids) // 2):
             route_stats.append({
-                "successes": responses[i*2],
-                "failures": responses[i*2 + 1]
+                "successes": responses[i*2].count(),
+                "failures": responses[i*2 + 1].count()
             })
 
         return route_stats

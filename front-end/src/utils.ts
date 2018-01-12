@@ -27,14 +27,14 @@ export function getAuthOptions(googleToken: string){
 
     return {
         headers: {
-            "Google-Auth-Token": googleToken
+            "Authorization": "Bearer " + googleToken
         }
     }
 }
 
 export async function promiseMap<InputType, OutputType>(array: InputType[], promise: (item: InputType) => Promise<OutputType>){
     let result = <OutputType[]>[];
-    
+
     await Promise.all(array.map((item, index) => {
         return promise(item).then(returnItem => {
             result[index] = returnItem
