@@ -96,14 +96,11 @@ import * as utils from "../utils";
 import * as Fuse from "fuse.js";
 import { merge } from "lodash";
 import Swagger from 'swagger-client';
+import { Prop } from 'vue-property-decorator';
 
 @Component({
     components: {
         "whr-navbar": NavBarComponent
-    },
-    props: {
-        api: Object,
-        adminAPI: Object
     }
 })
 export default class extends Vue {
@@ -115,18 +112,18 @@ export default class extends Vue {
 
     isAdmin = false;
 
-    api: SwaggerAPI<BasicAPI>;
-    adminAPI: SwaggerAPI<BasicAPI>;
+    @Prop() api: SwaggerAPI<BasicAPI>;
+    @Prop() adminAPI: SwaggerAPI<BasicAPI>;
 
     async mounted(){
         let statsError: undefined | string;
 
-        let [routes, stats] = <[any, any]>((await Promise.all([
+        let [routes, stats] = (await Promise.all([
             await this.api.apis.routes.get_all_routes(),
             await this.api.apis.stats.get_all_routes_stats().catch(e => {statsError = e; throw e;})
-        ])).map(x => x.obj));
+        ])).map(x => x.obj);
 
-        this.routes = <any>routes.map((route, i) => ({
+        this.routes = routes.map((route, i) => ({
             ...route,
             stats: stats[i]
         }))

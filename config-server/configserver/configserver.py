@@ -3,8 +3,9 @@ import json
 import os
 from functools import partial
 from http import HTTPStatus
-from typing import Callable, Type
+from typing import Callable, Type, Any
 import time
+import logging
 
 import connexion
 import flask
@@ -75,8 +76,7 @@ class ConfigServer:
 
         sanger_security = {
             "name": "googleOAuth",
-            "auth_url": "https://accounts.google.com/o/oauth2/auth",
-            "token_url": "https://accounts.google.com/o/oauth2/tokeninfo"
+            "auth_url": "https://accounts.google.com/o/oauth2/auth"
         }
 
         self.app.add_api(
@@ -84,7 +84,7 @@ class ConfigServer:
             resolver=connexion.Resolver(self.depatcher.resolve_name),
             validate_responses=True,
             arguments={
-                "securities": [] if use_test_auth else sanger_security,
+                "securities": [] if use_test_auth else [sanger_security],
                 "use_security": not use_test_auth
             }
         )
@@ -140,8 +140,8 @@ def get_postgres_db():
             autorollback=True
         )
 
-def start_server(debug: bool, port: int, host: str, config_JSON: any):
-    client_id = config_JSON.get("clientId", None)
+def start_server(debug: bool, port: int, host: str, config_JSON: Any):
+    client_id = config_JSON.get("clientId")
 
     if not debug and not client_id:
         raise TypeError("server: main(...) - test=False requires client_id to have a value")
@@ -160,7 +160,8 @@ def start_server(debug: bool, port: int, host: str, config_JSON: any):
 
 def main():
     parser = argparse.ArgumentParser(description='Generates CWL files from the GATK documentation')
-    parser.add_argument("--test", help="Enable debugging mode", action="store_true")
+    parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
+    parser.add_argument("--verbose", help="Enable verbose mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
     parser.add_argument("--config_JSON", help="Location of a JSON file which contains non secret configuration information", default="config.json")
@@ -169,6 +170,9 @@ def main():
 
     with open(options.config_JSON) as config_file:
         config_JSON = json.load(config_file)
+
+    if options.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     start_server(options.debug, options.port, options.host, config_JSON)
 

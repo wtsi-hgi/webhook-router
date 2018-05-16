@@ -3,7 +3,7 @@ LABEL maintainer="th10@sanger.ac.uk"
 
 # Add fluent-bit
 
-COPY --from=fluent/fluent-bit /fluent-bit /fluent-bit
+COPY --from=fluent/fluent-bit:0.12.6 /fluent-bit /fluent-bit
 
 # Install dependancies
 

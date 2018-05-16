@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 import flask
 
 from .errors import *
+from .auth import *
 from .logging import ConfigServerLogger
 from .models import extract_route_dict
 from .RouteDataMapper import RouteDataMapper
@@ -34,15 +35,6 @@ status_codes = {
     "add_route_link": 201,
     "delete_route_link": 204
 }
-
-def test_auth():
-    """
-    Test auth function
-    """
-    try:
-        return flask.request.headers.get("user", "test_user@example.com")
-    except:
-        return "test_user@example.com"
 
 class ConnexionDespatcher:
     """
@@ -84,17 +76,19 @@ class ConnexionDespatcher:
 
             This also automatically adds NO_CONTENT if needed.
             """
-
+            user = "<NONE>"
             try:
+                # NOTE: Connexion implements oauth, but we can't use it, as it doesn't
+                # work with Google's method of oauth (the token has to be passed in parameters).
+                # See https://github.com/zalando/connexion/issues/555.
                 if self._use_test_auth:
                     user = test_auth()
-
-                    if "user" in func.__code__.co_varnames:
-                        resp = func(*args, user=user, **kwargs)
-                    else:
-                        resp = func(*args, **kwargs)
                 else:
-                    user = kwargs["user"]
+                    user = google_auth("859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
+
+                if "user" in func.__code__.co_varnames:
+                    resp = func(*args, user=user, **kwargs)
+                else:
                     resp = func(*args, **kwargs)
 
                 code = status_codes.get(name)

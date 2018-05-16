@@ -95,10 +95,6 @@ export default class extends Vue {
         }
     }
 
-    async login(token: string){
-        this.googleToken = token;
-        this.state = "signed_in";
-    }
 
     logout(){
         this.auth.signOut().then(() => {
@@ -107,6 +103,7 @@ export default class extends Vue {
     }
 
     async getErrorString(error: any){
+        console.error(error);
         let errorText: string;
 
         if(error instanceof Error){
@@ -129,6 +126,11 @@ export default class extends Vue {
         }
 
         return errorText;
+    }
+
+    login(token: string){
+        this.googleToken = token;
+        this.state = "signed_in";
     }
 
     onError(errorText: string){
@@ -168,7 +170,11 @@ export default class extends Vue {
                     [this.api, this.adminAPI] = await Promise.all([`${configJSON.configServer}/swagger.json`, `${configJSON.adminServer}/swagger.json`].map(
                         url => Swagger(url,  {
                             authorizations: {
-                                googleToken: authResponse.id_token
+                                googleOAuth: {
+                                    token: {
+                                        access_token: authResponse.id_token
+                                    }
+                                }
                             },
                             requestInterceptor: () => {
                                 this.progressBar.start();
@@ -183,7 +189,7 @@ export default class extends Vue {
 
                     // Reload the token when it expires
                     // I cannot just use setInterval on the expiration date, as
-                    // javascript timers stop running when the computer is sleeping 
+                    // javascript timers stop running when the computer is sleeping
 
                     setInterval(() => this.tryReloadToken(), this.reloadPadding / 2);
                     window.addEventListener("focus", () => this.tryReloadToken());

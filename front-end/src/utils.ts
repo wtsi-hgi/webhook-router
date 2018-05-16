@@ -15,23 +15,6 @@ export function closeModal(vueTarget: any){
     })
 }
 
-export function getAuthOptions(googleToken: string){
-    let testUserProp = localStorage.getItem("testUser");
-    if(testUserProp != undefined){
-        return {
-            headers: {
-                user: testUserProp
-            }
-        }
-    }
-
-    return {
-        headers: {
-            "Authorization": "Bearer " + googleToken
-        }
-    }
-}
-
 export async function promiseMap<InputType, OutputType>(array: InputType[], promise: (item: InputType) => Promise<OutputType>){
     let result = <OutputType[]>[];
 

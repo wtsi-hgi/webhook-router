@@ -6,29 +6,21 @@ services:
     volumes:
       - ./front-end:/front-end
       - "./config.json:/front-end/config.json"
-    stdin_open: true
-    tty: true
   configserver:
     volumes:
       - "./config.json:/config-server/config.json"
       - ./config-server:/config-server
     environment:
       POSTGRES_PASSWORD: a_password
-    stdin_open: true
-    tty: true
   firewallconfig:
     volumes:
       - ./firewall-config:/firewall-config
-    stdin_open: true
-    tty: true
   router:
     volumes:
       - ./router:/router
     environment:
       CONFIGSERVER_LOCATION: http://configserver:8080
-      ELATICSEARCH_HOST: elasticsearch
-    stdin_open: true
-    tty: true
+      ELASTICSEARCH_HOST: elasticsearch
   db:
     environment:
       POSTGRES_PASSWORD: a_password

@@ -22,7 +22,7 @@ def google_auth(google_oauth_clientID: str):
     """
     Authenticate using google authentication
     """
-    token = flask.request.headers.get("Google-Auth-Token")
+    token = flask.request.headers.get("Authorization")[len("Bearer "):]
 
     if token is None:
         raise InvalidCredentialsError()

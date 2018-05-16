@@ -13,8 +13,6 @@ paths:
     put:
       summary: Sets the configuration
       operationId: set_config
-      security:
-        - googleToken: []
       parameters:
         - name: new_config
           in: body
@@ -30,8 +28,6 @@ paths:
     get:
       summary: Sets the configuration
       operationId: get_config
-      security:
-        - googleToken: []
       responses:
         '200':
           description: The current configuration
@@ -44,8 +40,6 @@ paths:
   /amIAdmin:
     get:
       summary: Returns whether the current user is an admin user, according to the auth
-      security:
-        - googleToken: []
       operationId: is_admin
       responses:
         '200':
@@ -109,8 +103,12 @@ definitions:
     type: integer
     minimum: 1
     maximum: 65535
+security:
+  - googleOAuth: [profile]
 securityDefinitions:
-  googleToken:
-    type: apiKey
-    name: Google-Auth-Token
-    in: header
+  googleOAuth:
+    authorizationUrl: "https://accounts.google.com/o/oauth2/auth"
+    flow: "implicit"
+    scopes:
+      profile: "Gets the basic profile of a user, including their email"
+    type: oauth2

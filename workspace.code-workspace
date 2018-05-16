@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "front-end"
+		},
+		{
+			"path": "config-server"
+		},
+		{
+			"path": "firewall-config"
+		},
+		{
+			"path": "router"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}

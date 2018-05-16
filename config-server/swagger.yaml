@@ -11,7 +11,7 @@ produces:
 # {% if use_security %}
 security:
 # {% for security in securities %}
-    - {{ security.name }}: [profile]
+    - {{security.name}}: [{{security.scope}}]
 # {% endfor %}
 # {% endif %}
 paths:
@@ -338,7 +338,6 @@ securityDefinitions:
     type: oauth2
     flow: implicit
     authorizationUrl: {{security.auth_url}}
-    x-tokenInfoUrl: {{security.token_url}}
     scopes:
       profile: Gets the basic profile of a user, including their email
 # {% endfor %}
