@@ -56,7 +56,12 @@ class ConfigServer:
 
         user_link_dm = UserLinkDataMapper()
         route_dm = RouteDataMapper(user_link_dm)
-        stat_queryier = StatisticQueryier(f"http://{os.environ['ELASTICSEARCH_USER']}:{os.environ['ELASTICSEARCH_PASSWORD']}@{os.environ['ELASTICSEARCH_HOST']}:9200")
+
+        if "ELASTICSEARCH_USER" in os.environ:
+            password_prefix = f"{os.environ['ELASTICSEARCH_USER']}:{os.environ['ELASTICSEARCH_PASSWORD']}@"
+        else:
+            password_prefix = ""
+        stat_queryier = StatisticQueryier(f"http://{password_prefix}{os.environ['ELASTICSEARCH_HOST']}:9200")
 
         self.depatcher = ConnexionDespatcher(
             use_test_auth,

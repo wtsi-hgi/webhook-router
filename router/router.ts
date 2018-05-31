@@ -269,10 +269,13 @@ function handleInternalError(error: Error, request: http.IncomingMessage, respon
 async function setUpLogs(){
     // Remove the default console logging, and re-add it with colored output
     winston.remove(winston.transports.Console);
-    const esClientOpts = {
-        host: `http://${process.env.ELASTICSEARCH_HOST}:9200`,
-        httpAuth: `${process.env.ELASTICSEARCH_USER}:${process.env.ELASTICSEARCH_PASSWORD}`
+    const esClientOpts = <any>{
+        host: `http://${process.env.ELASTICSEARCH_HOST}:9200`
     }
+    if(process.env.ELASTICSEARCH_USER != undefined){
+        esClientOpts["httpAuth"] = `${process.env.ELASTICSEARCH_USER}:${process.env.ELASTICSEARCH_PASSWORD}`
+    }
+
     const esClient = elasticsearch.Client({
         ...esClientOpts,
         log: []

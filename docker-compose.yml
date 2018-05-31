@@ -11,22 +11,20 @@ services:
       - esdata:/usr/share/elasticsearch/data
   kibana:
     image: docker.elastic.co/kibana/kibana-oss:6.1.1
-    depends_on:
-      - "elasticsearch"
-    ports:
-      - "5601:5601"
+    expose:
+      - "5601"
     networks: [app]
     environment:
       LOGGING_QUIET: "True"
-  nginx:
+  kibana_front_end:
     image: nginx:1.13.8
+    depends_on:
+      - "kibana"
     volumes:
       - "./nginx.conf:/etc/nginx/nginx.conf"
       - "./.htpasswd:/etc/nginx/.htpasswd"
-    depends_on:
-      - "kibana"
     ports:
-      - "8089:80"
+      - "5601:5601"
     networks: [app]
   configserver:
     build: config-server
@@ -43,8 +41,6 @@ services:
       POSTGRES_PASSWORD:
       POSTGRES_HOST: db
       ELASTICSEARCH_HOST: elasticsearch
-      ELASTICSEARCH_USER: elastic
-      ELASTICSEARCH_PASSWORD: password
   router:
     build: router
     ports:
@@ -56,8 +52,6 @@ services:
     environment:
       CONFIGSERVER_LOCATION: http://configserver:8080
       ELASTICSEARCH_HOST: elasticsearch
-      ELASTICSEARCH_USER: elastic
-      ELASTICSEARCH_PASSWORD: password
   firewallconfig:
     build: firewall-config
     ports:
