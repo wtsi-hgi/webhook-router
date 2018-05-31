@@ -1,17 +1,22 @@
 import json
 import os
 from typing import List
+import sys
 
 from elasticsearch import Elasticsearch
 from elasticsearch_dsl import MultiSearch, Search
+from elasticsearch.exceptions import NotFoundError
 
 from .models import extract_route_dict
 
 
 class StatisticQueryier:
-    def __init__(self, elasticurl: str):
+    def __init__(self, elasticurl: str) -> None:
         self._es = Elasticsearch(elasticurl)
-        self._index = "whr_routing_server"
+        self._index = "whr_routing_server*"
+
+        # create the index if it doesn't exist
+        self._es.indices.create(index=self._index, ignore=400)
 
     def _logs_query(self, uuid: str, success: bool):
         search = Search(using=self._es, index=self._index)
@@ -58,10 +63,11 @@ class StatisticQueryier:
         assert len(responses) == len(uuids) * 2
 
         route_stats = []
-        for i in range(len(uuids) // 2):
+        for i in range(len(uuids)):
             route_stats.append({
-                "successes": responses[i*2].count(),
-                "failures": responses[i*2 + 1].count()
+                "successes": responses[i*2].hits.total,
+                "failures": responses[i*2 + 1].hits.total
             })
+        print(json.dumps(route_stats))
 
         return route_stats

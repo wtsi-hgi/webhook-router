@@ -6,20 +6,12 @@ import httpProxy = require("http-proxy");
 const route = require("router")();
 import argparse = require("argparse");
 import winston = require("winston");
+const WinstonElasticsearch = require("winston-elasticsearch");
+import process = require("process");
+const elasticsearch = require("elasticsearch");
 
-// Remove the default console logging, and re-add it with colored output
-winston.remove(winston.transports.Console);
-
-const logger = new winston.Logger({
-    transports: [
-        new winston.transports.Console({
-            colorize: true
-        }),
-        new winston.transports.File({
-            filename: "logs.log"
-        })
-    ]
-});
+let logger: winston.LoggerInstance;
+let args: any;
 
 /** Error code from the config server of an invalid route */
 const INVALID_ROUTE_TOKEN_ERROR = 2;
@@ -274,35 +266,88 @@ function handleInternalError(error: Error, request: http.IncomingMessage, respon
     writeInternalError(response);
 }
 
-const parser = new argparse.ArgumentParser({
-    description: "Webhook router"
-})
-parser.addArgument(["--port"], {help: "Port to serve the request", required: true});
-parser.addArgument(["--host"], {help: "Host to serve the request from", defaultValue: "127.0.0.1"});
-parser.addArgument(["--warningDelay"], {help: "How many milliseconds before a long request warning is issued",
-    defaultValue: 10000, type: "int"});
-parser.addArgument(["--configServer"], {help: "Ip Address of the config server", required: true});
-const args = parser.parseArgs();
+async function setUpLogs(){
+    // Remove the default console logging, and re-add it with colored output
+    winston.remove(winston.transports.Console);
+    const esClientOpts = {
+        host: `http://${process.env.ELASTICSEARCH_HOST}:9200`,
+        httpAuth: `${process.env.ELASTICSEARCH_USER}:${process.env.ELASTICSEARCH_PASSWORD}`
+    }
+    const esClient = elasticsearch.Client({
+        ...esClientOpts,
+        log: []
+    });
 
+    let firstTime = false;
+    while(true){
+        try{
+            await esClient.ping();
+            console.log("Connected to elasticsearch for logging.");
 
-http.createServer((request, response) => {
-    route(request, response, (error: any) => {
-        if(!error){
-            logger.error("404 not found", {
-                url: request.url,
-                success: false,
-                ...getRequestLogData(request)
+            break;
+        }
+        catch {
+            if (firstTime){
+                console.error("Elasticsearch is not up yet, waiting for it to launch ...")
+            }
+
+            firstTime = false;
+        }
+        await delay(1000);
+    }
+
+    logger = new winston.Logger({
+        transports: [
+            new winston.transports.Console({
+                colorize: true
+            }),
+            new winston.transports.File({
+                filename: "logs.log"
+            }),
+            new WinstonElasticsearch({
+                clientOpts: {
+                    host: `http://${process.env.ELASTICSEARCH_HOST}:9200`,
+                    httpAuth: `${process.env.ELASTICSEARCH_USER}:${process.env.ELASTICSEARCH_PASSWORD}`
+                },
+                indexPrefix: "whr_routing_server",
+                handleExceptions: true
             })
+        ]
+    });
+}
 
-            writeNotFound(response)
-        }
-        else{
-            handleInternalError(error, request, response);
-        }
+(async () => {
+    const parser = new argparse.ArgumentParser({
+        description: "Webhook router"
     })
-}).listen(args.port, args.host);
+    parser.addArgument(["--port"], {help: "Port to serve the request", required: true});
+    parser.addArgument(["--host"], {help: "Host to serve the request from", defaultValue: "127.0.0.1"});
+    parser.addArgument(["--warningDelay"], {help: "How many milliseconds before a long request warning is issued",
+        defaultValue: 10000, type: "int"});
+    parser.addArgument(["--configServer"], {help: "Ip Address of the config server", required: true});
+    args = parser.parseArgs();
 
-logger.info("Router running", {
-    port: args.port,
-    host: args.host
-})
+    http.createServer((request, response) => {
+        route(request, response, (error: any) => {
+            if(!error){
+                logger.error("404 not found", {
+                    url: request.url,
+                    success: false,
+                    ...getRequestLogData(request)
+                })
+
+                writeNotFound(response)
+            }
+            else{
+                handleInternalError(error, request, response);
+            }
+        })
+    }).listen(args.port, args.host);
+
+    await setUpLogs();
+
+    logger!.info("Router running", {
+        port: args.port,
+        host: args.host
+    })
+})().catch(e => {throw e})

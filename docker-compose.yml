@@ -5,6 +5,10 @@ services:
     networks: [app]
     expose:
       - "9200"
+    environment:
+      logger.org.elasticsearch: WARN
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
   kibana:
     image: docker.elastic.co/kibana/kibana-oss:6.1.1
     depends_on:
@@ -12,6 +16,8 @@ services:
     ports:
       - "5601:5601"
     networks: [app]
+    environment:
+      LOGGING_QUIET: "True"
   nginx:
     image: nginx:1.13.8
     volumes:
@@ -93,3 +99,4 @@ networks:
         - subnet: 10.11.0.1/22
 volumes:
   pgdata:
+  esdata:

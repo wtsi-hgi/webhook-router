@@ -109,7 +109,7 @@ export default class extends Vue {
         if(error instanceof Error){
             if((<any>error).response != undefined){
                 let resp = (<any>error).response;
-                errorText = `Failed to get ${resp.url}, ${resp.statusText}: ${resp.obj.error}`;
+                errorText = `Failed to get ${resp.url}, ${resp.statusText}: ${resp.obj.error || ""}`;
             }
             else{
                 errorText = error.message

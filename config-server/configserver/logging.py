@@ -2,6 +2,11 @@ import logging
 
 import flask
 from pythonjsonlogger import jsonlogger
+from cmreslogging.handlers import CMRESHandler
+import os
+import sys
+import requests
+import time
 
 LOGGING_CONFIG = "(asctime) (message) (levelname)"
 
@@ -26,7 +31,40 @@ class ConfigServerLogger:
         stdout_handler.setFormatter(json_formatter)
         logger.addHandler(stdout_handler)
 
-        add_file_log_handler(logger)
+        # Wait for elastic search to boot before starting
+
+        first_time_check = True
+        while True:
+            try:
+                es_json = requests.get(f"""http://{os.environ["ELASTICSEARCH_HOST"]}:9200/_cluster/health""").json()
+                if es_json["status"] != "red":
+                    logger.info(f"Elasticsearch is up with status {es_json['status']}!")
+                    break
+            except requests.exceptions.ConnectionError:
+                pass
+
+            if first_time_check:
+                logger.warn("Elasticsearch is not avaliable, will wait for it to launch ...")
+            else:
+                logger.debug("Failed poll of elasticsearch")
+            first_time_check = False
+
+            time.sleep(1)
+
+
+        print("Adding logger ...", file=sys.stderr)
+        es_handler = CMRESHandler(
+            hosts=[{
+                'host': os.environ["ELASTICSEARCH_HOST"],
+                'port': 9200
+            }],
+            auth_type=CMRESHandler.AuthType.BASIC_AUTH,
+            es_index_name="whr_config_server"
+        )
+        logger.addHandler(es_handler)
+        logger.warn("Test log")
+        print("Added logger", file=sys.stderr)
+
 
         self.logger = logger
         self.info = logger.info

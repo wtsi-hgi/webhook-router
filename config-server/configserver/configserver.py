@@ -28,7 +28,7 @@ class ConfigServer:
     """
     Main class for serving requests
     """
-    def __init__(self, use_test_auth: bool, db: Database, config_JSON: any):
+    def __init__(self, use_test_auth: bool, db: Database, config_JSON: any) -> None:
         self._db = db
 
         # wait until the database is up until we create tables if not present
