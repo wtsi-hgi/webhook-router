@@ -102,30 +102,30 @@ export default class extends Vue {
         })
     }
 
-    async getErrorString(error: any){
-        console.error(error);
-        let errorText: string;
-
+    getErrorString(error: any){
         if(error instanceof Error){
             if((<any>error).response != undefined){
                 let resp = (<any>error).response;
-                errorText = `Failed to get ${resp.url}, ${resp.statusText}: ${resp.obj.error || ""}`;
+                return `Failed to get ${resp.url}, ${resp.statusText}: ${resp.obj.error || ""}`;
             }
             else{
-                errorText = error.message
+                return error.message
             }
         }
         else if(error instanceof ErrorEvent){
-            errorText = `${error.lineno}:${error.colno} ${error.message}`
+            if (error.message == "Script error."){
+                return "Check the DevTools console for information"
+            }
+            else{
+                return `${error.lineno}:${error.colno} ${error.message}`
+            }
         }
         else if(error instanceof Object){
-            errorText = JSON.stringify(error);
+            return JSON.stringify(error);
         }
         else{
-            errorText = error.toString();
+            return error.toString();
         }
-
-        return errorText;
     }
 
     login(token: string){
@@ -142,11 +142,11 @@ export default class extends Vue {
     async mounted() {
         this.progressBar.start();
         window.addEventListener("unhandledrejection", async (e) => {
-            this.onError(await this.getErrorString((<any>e).reason));
+            this.onError(this.getErrorString((<any>e).reason));
         })
 
         window.addEventListener("error", async (e) => {
-            this.onError(await this.getErrorString(e));
+            this.onError(this.getErrorString(e));
         })
 
         let configJSON = (await (await fetch("config.json")).json());

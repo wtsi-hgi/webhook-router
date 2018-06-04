@@ -131,7 +131,7 @@ def main():
         partial(google_auth, "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
     )
 
-    server.app.run(port=8080, host="0.0.0.0")
+    server.app.run(port=80, host="0.0.0.0")
 
 if __name__ == "__main__":
     main()

@@ -8,6 +8,7 @@ from peewee import SqliteDatabase
 import logging
 from uuid import uuid4
 import functools
+from typing import Iterable
 
 @pytest.fixture(autouse=True)
 def no_logs():
@@ -46,7 +47,7 @@ def router_app(webhook_server, user_auth):
     return PatchedFlaskClient
 
 @pytest.fixture()
-def test_route_uuid(webhook_server: ConfigServer, router_app: FlaskClient) -> str:
+def test_route_uuid(webhook_server: ConfigServer, router_app: FlaskClient) -> Iterable[str]:
     create_route_resp = router_app.post(
         "/create-route",
         data=json.dumps({

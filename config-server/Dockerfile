@@ -1,10 +1,6 @@
 FROM python:3.6
 LABEL maintainer="th10@sanger.ac.uk"
 
-# Add fluent-bit
-
-COPY --from=fluent/fluent-bit:0.12.6 /fluent-bit /fluent-bit
-
 # Install dependancies
 
 ADD requirements.txt /docker/requirements.txt

@@ -1,10 +1,6 @@
 FROM node:8.9
 LABEL maintainer="th10@sanger.ac.uk"
 
-# Add fluent-bit
-
-COPY --from=fluent/fluent-bit /fluent-bit /fluent-bit
-
 # Install dependancies
 
 ADD package.json /router/package.json

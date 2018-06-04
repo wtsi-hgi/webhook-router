@@ -126,19 +126,20 @@ async function getRouteFromToken(token: string){
         var configServerJSON = (await axios.get(`${args.configServer}/routes/token/${token}`)).data
     }
     catch(error){
-        if(error instanceof Response){
-            if(typeof configServerJSON.error == "string"){
-                if(configServerJSON.error_num == INVALID_ROUTE_TOKEN_ERROR){
-                    throw new InvalidTokenError(token);
-                }
-                else{
-                    throw new ConfigServerError(configServerJSON.error)
-                }
-            }
-        }
-        else{
+        console.error(error.constructor)
+        // if(error instanceof Response){
+        //     if(typeof configServerJSON.error == "string"){
+        //         if(configServerJSON.error_num == INVALID_ROUTE_TOKEN_ERROR){
+        //             throw new InvalidTokenError(token);
+        //         }
+        //         else{
+        //             throw new ConfigServerError(configServerJSON.error)
+        //         }
+        //     }
+        // }
+        // else{
             throw error;
-        }
+        //}
     }
 
     return <Route>configServerJSON;

@@ -5,11 +5,11 @@ import https = require("https");
 import os = require("os");
 import axios, {AxiosError} from "axios";
 
-var configServer: cp.ChildProcess;
-var routerServer: cp.ChildProcess;
-var testServer: net.Server;
+var testServerHandle: net.Server;
 
-var [configPort, routerPort, receiverPort] = [8080, 8081, 8082];
+let configServer: string = "http://configserver";
+let routingServer: string = "http://router";
+let testServer: string = "http://127.0.0.1:8081";
 
 function delay(time: number){
     return new Promise((resolve, reject) => {
@@ -18,18 +18,13 @@ function delay(time: number){
 }
 
 beforeAll(async () => {
-    configServer = cp.spawn(`cd ../config-server && python -m configserver --port ${configPort} --host 127.0.0.1 --debug`,
-        [], {shell: true});
-    routerServer = cp.spawn(`node ./router.js --port ${routerPort} --host 127.0.0.1 --configServer http://127.0.0.1:${configPort}`,
-        [], {shell: true});
-    testServer = http.createServer((req, res) => {
+    testServerHandle = http.createServer((req, res) => {
         res.end("response");
-    }).listen(receiverPort, "127.0.0.1");
-    await delay(5000);
+    }).listen(8081, "127.0.0.1");
 }, 5500)
 
 async function createRoute(dest: string, options = {}){
-    let createRouteResp = await axios.post(`http://127.0.0.1:${configPort}/create-route`, {
+    let createRouteResp = await axios.post(`${configServer}/create-route`, {
         name: "route",
         destination: dest,
         ...options
@@ -44,11 +39,11 @@ async function createRoute(dest: string, options = {}){
 async function testRoutingToAddress(location: string, options = {}){
     let token = await createRoute(location, options);
 
-    return await axios.post(`http://127.0.0.1:${routerPort}/${token}`)
+    return await axios.post(`${routingServer}/${token}`)
 }
 
 it("Routes to test server", async () => {
-    let resp = await testRoutingToAddress(`http://127.0.0.1:${receiverPort}`)
+    let resp = await testRoutingToAddress(testServer)
 
     expect(resp.data).toBe("response");
 })
@@ -107,7 +102,7 @@ async function time(func: () => Promise<any>){
 
 async function timeToken(token: string){
     return await time(async () => {
-        await axios.post(`http://127.0.0.1:${routerPort}/${token}`, undefined, {
+        await axios.post(`${routingServer}/${token}`, undefined, {
             validateStatus: () => true // make sure there is no exception time loss
         })
     })
@@ -127,7 +122,7 @@ async function promiseMap<InputType, OutputType>(array: InputType[], promise: (i
 }
 
 it("can route at least 5 routes per second", async () => {
-    let token = await createRoute(`http://127.0.0.1:${receiverPort}`);
+    let token = await createRoute(routingServer);
 
     let timeTaken = await time(async () => {
         for(var i = 0;i < 5;i++){
@@ -141,10 +136,10 @@ it("can route at least 5 routes per second", async () => {
 const numbersTo = (limit: number) => Array.from(Array(limit).keys())
 
 it("rate limits requests", async () => {
-    let token = await createRoute(`http://127.0.0.1:${receiverPort}`, {
+    let token = await createRoute(routingServer, {
         rateLimit: 30
     });
-    let responses = await Promise.all(numbersTo(60).map(_ => axios.post(`http://127.0.0.1:${routerPort}/${token}`, undefined, {
+    let responses = await Promise.all(numbersTo(60).map(_ => axios.post(`${routingServer}/${token}`, undefined, {
         validateStatus: () => true // get the status codes back
     })));
 
@@ -152,7 +147,5 @@ it("rate limits requests", async () => {
 })
 
 afterAll(() => {
-    configServer.kill();
-    routerServer.kill();
-    testServer.close();
+    testServerHandle.close();
 })
