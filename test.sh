@@ -8,7 +8,7 @@ fi
 echo "-------------------------------"
 echo "Starting up docker-compose ..."
 echo "-------------------------------"
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --detach
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 echo "-------------------------------"
 echo "Testing the configserver ..."
