@@ -5,6 +5,14 @@ if [ -z "${POSTGRES_PASSWORD+defined}" ]; then
     export POSTGRES_PASSWORD=$(docker run -it frapsoft/openssl rand -base64 15);
 fi
 
+function finish {
+    echo "--"
+    echo "docker-compose logs"
+    docker-compose logs
+}
+
+trap finish EXIT
+
 echo "-------------------------------"
 echo "Starting up docker-compose ..."
 echo "-------------------------------"
