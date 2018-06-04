@@ -1,3 +1,4 @@
+#!/bin/bash
 set -euo pipefail
 
 if [ -z "${POSTGRES_PASSWORD+defined}" ]; then
