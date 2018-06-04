@@ -26,7 +26,7 @@ docker-compose exec configserver sh -c "cd /config-server && pip install -r test
 echo "-------------------------------"
 echo "Testing the router ..."
 echo "-------------------------------"
-docker-compose exec router sh -c "cd /router && npm run-script test"
+docker-compose exec router sh -c "cd /router && npm run-script build && npm run-script test"
 
 echo "-------------------------------"
 echo "Testing the firewall-config server ..."
