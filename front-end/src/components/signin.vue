@@ -1,20 +1,21 @@
 <template>
 <div>
     <whr-navbar></whr-navbar>
+    <slot name="errors"></slot>
     <div class="container" style="align-text:center">
         <br />
         <h5>Please sign in to continue:</h5>
         <br />
-        <div id="google-signin"></div>
+          <span @click="$emit('googleLoginButtonPressed')" class="btn btn-social btn-lg btn-google">
+                <span class="fa fa-google"></span> Sign in with Google
+          </span>
+          <span @click="$emit('sangerLoginButtonPressed')" class="btn btn-social btn-lg btn-sanger">
+                <span>
+                    <img class="sanger-login-button" src="img/minimal-logo.png" />
+                </span>
+                <span>Sign in with Sanger</span>
+          </span>
         <br />
-        <button @click="trySignIn" type="button" class="btn btn-outline-secondary">
-            <span>
-                <img class="sanger-logo" src="img/logo.png" />
-            </span>
-            <span>
-                Sign in with Sanger
-            </span>
-        </button>
     </div>
 </div>
 </template>
@@ -34,30 +35,19 @@ const ClientOAuth2 = require('client-oauth2')
         "errors": ErrorsComponent
     }
 })
-export default class extends Vue {
-    mounted(){
-        gapi.signin2.render("google-signin", {
-            scope: "profile email",
-            theme: 'light',
-            width: 250,
-            height: 50,
-            longtitle: true,
-            onsuccess: user => {
-                this.$emit("signedIn", user.getAuthResponse().id_token)
-            }
-        });
-    }
-
+export default class SignIn extends Vue {
     trySignIn(){
         let nonse = utils.getRandomHex();
 
         let sangerAuth = new ClientOAuth2({
             clientId: '-4d8mHm_RF2OnaqJgczhqA',
             authorizationUri: 'https://www.sanger.ac.uk/oa2/Auth',
-            redirectUri: window.location,
+            redirectUri: window.location.origin + "/#sanger_callback",
             scopes: ['profile'],
             state: nonse
         });
+
+        localStorage.setItem("sangerAuthNonse", nonse);
 
         window.location.href = sangerAuth.token.getUri();
     }

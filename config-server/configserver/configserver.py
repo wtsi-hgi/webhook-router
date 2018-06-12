@@ -79,17 +79,19 @@ class ConfigServer:
 
         self.app.app.after_request(self.on_after_request)
 
-        sanger_security = {
-            "name": "googleOAuth",
-            "auth_url": "https://accounts.google.com/o/oauth2/auth"
-        }
+        standard_securities = [
+            {
+                "name": "oAuth",
+                "auth_url": "https://accounts.google.com/o/oauth2/auth,https://www.sanger.ac.uk/oa2/Auth"
+            }
+        ]
 
         self.app.add_api(
             '../swagger.yaml',
             resolver=connexion.Resolver(self.depatcher.resolve_name),
             validate_responses=True,
             arguments={
-                "securities": [] if use_test_auth else [sanger_security],
+                "securities": [] if use_test_auth else standard_securities,
                 "use_security": not use_test_auth
             }
         )
@@ -119,6 +121,7 @@ class ConfigServer:
         For a given Error class, sets response that would be returned
         """
         def handler(error):
+            logger.warning(error.__repr__())
             return flask.make_response(flask.jsonify({
                 "error": error_message,
                 "error_num": error_num
@@ -146,13 +149,13 @@ def get_postgres_db():
         )
 
 def start_server(debug: bool, port: int, host: str, config_JSON: Any):
-    client_id = config_JSON.get("clientId")
+    # client_id = config_JSON.get("clientId")
 
-    if not debug and not client_id:
-        raise TypeError("server: main(...) - test=False requires client_id to have a value")
+    # if not debug and not client_id:
+    #     raise TypeError("server: main(...) - test=False requires client_id to have a value")
     server = ConfigServer(
         use_test_auth=debug,
-        db=SqliteDatabase('db.db') if debug else get_postgres_db(),
+        db=get_postgres_db(),
         config_JSON=config_JSON
     )
 
@@ -165,7 +168,7 @@ def start_server(debug: bool, port: int, host: str, config_JSON: Any):
 
 def main():
     parser = argparse.ArgumentParser(description='Generates CWL files from the GATK documentation')
-    parser.add_argument("--debug", help="Enable debugging mode", action="store_true")
+    parser.add_argument("--debug", help="Enable test credentials (NOT SECURE).", action="store_true")
     parser.add_argument("--verbose", help="Enable verbose mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
@@ -178,6 +181,9 @@ def main():
 
     if options.verbose:
         logging.getLogger().setLevel(logging.INFO)
+
+    if options.debug:
+        logger.warning("Debug mode is active (THIS IS NOT SECURE).")
 
     start_server(options.debug, options.port, options.host, config_JSON)
 

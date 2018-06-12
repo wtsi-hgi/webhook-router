@@ -104,10 +104,10 @@ definitions:
     minimum: 1
     maximum: 65535
 security:
-  - googleOAuth: [profile]
+  - oAuth: [profile]
 securityDefinitions:
-  googleOAuth:
-    authorizationUrl: "https://accounts.google.com/o/oauth2/auth"
+  oAuth:
+    authorizationUrl: "https://accounts.google.com/o/oauth2/auth,https://www.sanger.ac.uk/oa2/Auth"
     flow: "implicit"
     scopes:
       profile: "Gets the basic profile of a user, including their email"

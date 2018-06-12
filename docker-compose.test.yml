@@ -10,6 +10,8 @@ services:
     volumes:
       - "./config.json:/config-server/config.json"
       - ./config-server:/config-server
+    environment:
+      DEBUG_CREDENTIALS: 1
   firewallconfig:
     volumes:
       - ./firewall-config:/firewall-config

@@ -5,3 +5,28 @@
     margin-left: 0px;
     margin-right: 5px;
 }
+.btn-sanger {
+    color: #fff;
+    background-color: #265b8c;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+.btn-sanger:hover {
+    color: #fff;
+    background-color: #1b4164;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+.sanger-login-button {
+    max-height: 74%;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    filter: invert(100%);
+}

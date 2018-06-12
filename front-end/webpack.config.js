@@ -33,7 +33,7 @@ module.exports = {
     },
     devtool: 'source-map',
     resolve: {
-        extensions: ['.webpack.js', '.web.js', '.ts', '.d.ts', '.tsx', '.js', '.json', '.html'],
+        extensions: ['.webpack.js', '.web.js', '.ts', '.tsx', '.js', '.html'],
         alias: {
             'vue$': 'vue/dist/vue.esm.js'
         }

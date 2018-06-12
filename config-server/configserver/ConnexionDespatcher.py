@@ -84,7 +84,7 @@ class ConnexionDespatcher:
                 if self._use_test_auth:
                     user = test_auth()
                 else:
-                    user = google_auth("859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
+                    user = normal_auth("859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
 
                 if "user" in func.__code__.co_varnames:
                     resp = func(*args, user=user, **kwargs)

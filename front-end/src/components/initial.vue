@@ -1,12 +1,15 @@
 <template>
 <div>
-    <div v-if="state=='start'">
+    <div v-if="isOnSangerCallback()">
+    </div>
+    <div v-else-if="state=='start'">
         <whr-navbar></whr-navbar>
         <errors ref="errors" slot="errors"></errors>
     </div>
     <div v-else-if="state=='not_signed_in'">
-        <signin @signedIn="token => login(token)"></signin>
-        <errors ref="errors" slot="errors"></errors>
+        <signin @googleLoginButtonPressed="googleLoginButtonPressed" @sangerLoginButtonPressed="sangerLoginButtonPressed">
+            <errors ref="errors" slot="errors"></errors>
+        </signin>
     </div>
     <!--Setting the key as below reloads the page on path change-->
     <router-view v-else class="view" :key="$route.fullPath" :adminAPI="adminAPI" :api="api">
@@ -30,9 +33,13 @@ import AdminPanelComponent from "./admin-panel.vue"
 import Component from 'vue-class-component';
 import ErrorsComponent from "./errors.vue";
 import * as utils from "../utils";
-var Mprogress = require("mprogress/mprogress.min.js"); // Do this, as the main module is not exported
+var Mprogress = require("mprogress"); // Do this, as the main module is not exported
 import {auto} from 'browser-unhandled-rejection';
 import Swagger from 'swagger-client';
+import * as ClientOAuth2 from "client-oauth2";
+import OAuthHelper from "../OAuthHelper"
+import {startsWith} from "lodash";
+import {notEqual as assertNotEqual} from "assert";
 
 // pollyfill the event unhandledrejection
 auto();
@@ -50,6 +57,7 @@ const router = new VueRouter({
     ]
 })
 
+
 @Component({
     components: {
         "whr-navbar": NavBarComponent,
@@ -63,11 +71,10 @@ const router = new VueRouter({
         }
     }
 })
-export default class extends Vue {
+export default class Inital extends Vue {
     signedin = false
-    state = "start"
-    private googleToken = ""
-    auth: gapi.auth2.GoogleAuth;
+    state = "start";
+    oAuthHelper: OAuthHelper;
     api: SwaggerAPI<BasicAPI>;
     adminAPI: SwaggerAPI<BasicAPI>;
     tokenExpiration: number;
@@ -75,6 +82,7 @@ export default class extends Vue {
         template: 3, // 3 = indeterminate progress bar
         parent: 'body'
     });
+    configJSON: Promise</*typeof import("../../config.json")*/any> = (async () => await (await fetch("config.json")).json())()
 
     /**
      * Padding time for a reload of a token.
@@ -86,20 +94,79 @@ export default class extends Vue {
         errors: ErrorsComponent;
     }
 
-    async tryReloadToken(){
-        if(this.tokenExpiration - this.reloadPadding < Date.now()){
-            let newAuthResp = await this.auth.currentUser.get().reloadAuthResponse();
+    isOnSangerCallback(){
+        return window.location.search == "?oauth_callback";
+    }
 
-            this.googleToken = newAuthResp.id_token;
-            this.tokenExpiration = newAuthResp.expires_at;
+    private async logon(oAuthHelper: OAuthHelper){
+        assertNotEqual(oAuthHelper.token, undefined);
+
+        function getOpenAPIAuthFromToken(oAuthHelper: OAuthHelper){
+            return  {
+                oAuth: {
+                    token: {
+                        access_token: oAuthHelper.name + "=" + oAuthHelper.token
+                    }
+                }
+            }
         }
+
+        this.oAuthHelper = oAuthHelper;
+        const configJSON = await this.configJSON;
+
+        [this.api, this.adminAPI] = await Promise.all([`${configJSON.configServer}/swagger.json`, `${configJSON.adminServer}/swagger.json`].map(
+            url => Swagger(url, {
+                authorizations: getOpenAPIAuthFromToken(this.oAuthHelper),
+                requestInterceptor: () => {
+                    this.progressBar.start();
+                },
+                responseInterceptor: (resp) => {
+                    this.progressBar.end();
+                }
+            }))
+        )
+        this.oAuthHelper.emitter.on(OAuthHelper.tokenChangeEvent, () => {
+            [this.api, this.adminAPI].forEach(x => {
+                x.authorizations = getOpenAPIAuthFromToken(this.oAuthHelper)
+            })
+        })
+
+        this.state = "signed_in";
+    }
+
+    async sangerLoginButtonPressed(){
+        const sangerOAuthHelper = new OAuthHelper(
+            "sanger",
+            (await this.configJSON).sangerClientId,
+            "https://www.sanger.ac.uk/oa2/Auth",
+            ["profile"]
+        );
+        this.progressBar.start();
+        if(await sangerOAuthHelper.promptLogin() !== undefined)
+            await this.logon(sangerOAuthHelper);
+        this.progressBar.end();
+    }
+
+    async googleLoginButtonPressed() {
+        const googleOAuthHelper = new OAuthHelper(
+            "google",
+            (await this.configJSON).googleClientId,
+            "https://accounts.google.com/o/oauth2/auth",
+            ["profile", "email"],
+            {
+                "hd": "sanger.ac.uk"
+            }
+        );
+        this.progressBar.start();
+        if(await googleOAuthHelper.promptLogin() !== undefined)
+            await this.logon(googleOAuthHelper);
+        this.progressBar.end();
     }
 
 
-    logout(){
-        this.auth.signOut().then(() => {
-            this.state = "not_signed_in";
-        })
+    async logout(){
+        await this.oAuthHelper.logout();
+        this.state = "not_signed_in";
     }
 
     getErrorString(error: any){
@@ -128,11 +195,6 @@ export default class extends Vue {
         }
     }
 
-    login(token: string){
-        this.googleToken = token;
-        this.state = "signed_in";
-    }
-
     onError(errorText: string){
         this.$refs.errors.addError(errorText);
 
@@ -140,7 +202,6 @@ export default class extends Vue {
     }
 
     async mounted() {
-        this.progressBar.start();
         window.addEventListener("unhandledrejection", async (e) => {
             this.onError(this.getErrorString((<any>e).reason));
         })
@@ -149,56 +210,45 @@ export default class extends Vue {
             this.onError(this.getErrorString(e));
         })
 
-        let configJSON = (await (await fetch("config.json")).json());
+        const configJSON = await this.configJSON;
 
-        // let google tell us when it's loaded (look in index.html for the definition of this)
-        await (<any>window).gapiLoadPromise;
+        this.progressBar.start();
 
-        gapi.load('auth2', () => {
-            gapi.auth2.init({
-                client_id: configJSON.clientId,
-                fetch_basic_profile: false,
-                scope: 'profile',
-                hosted_domain: "sanger.ac.uk"
-            }).then(async auth => {
-                this.progressBar.end();
-                this.auth = auth;
-                if(this.auth.isSignedIn.get()){
-                    let authResponse = this.auth.currentUser.get().getAuthResponse();
-                    this.tokenExpiration = authResponse.expires_at;
+        const sangerOAuthHelper = new OAuthHelper(
+            "sanger",
+            (await this.configJSON).sangerClientId,
+            "https://www.sanger.ac.uk/oa2/Auth",
+            ["profile"]
+        );
 
-                    [this.api, this.adminAPI] = await Promise.all([`${configJSON.configServer}/swagger.json`, `${configJSON.adminServer}/swagger.json`].map(
-                        url => Swagger(url,  {
-                            authorizations: {
-                                googleOAuth: {
-                                    token: {
-                                        access_token: authResponse.id_token
-                                    }
-                                }
-                            },
-                            requestInterceptor: () => {
-                                this.progressBar.start();
-                            },
-                            responseInterceptor: (resp) => {
-                                this.progressBar.end();
-                            }
-                        }))
-                    )
+        const sangerToken = await sangerOAuthHelper.loadTryGetToken();
+        if (sangerToken !== undefined){
+            await this.logon(sangerOAuthHelper);
+            this.state = "signed_in";
 
-                    this.login(authResponse.id_token);
+            return;
+        }
 
-                    // Reload the token when it expires
-                    // I cannot just use setInterval on the expiration date, as
-                    // javascript timers stop running when the computer is sleeping
+        const googleOAuthHelper = new OAuthHelper(
+            "google",
+            (await this.configJSON).googleClientId,
+            "https://accounts.google.com/o/oauth2/auth",
+            ["profile", "email"],
+            {
+                "hd": "sanger.ac.uk"
+            }
+        );
 
-                    setInterval(() => this.tryReloadToken(), this.reloadPadding / 2);
-                    window.addEventListener("focus", () => this.tryReloadToken());
-                }
-                else{
-                    this.state = "not_signed_in"
-                }
-            })
-        })
+        const googleToken = await googleOAuthHelper.loadTryGetToken();
+        if (googleToken !== undefined){
+            await this.logon(googleOAuthHelper);
+            this.state = "signed_in";
+
+            return;
+        }
+
+        this.state = "not_signed_in";
+        this.progressBar.end();
     }
 }
 </script>

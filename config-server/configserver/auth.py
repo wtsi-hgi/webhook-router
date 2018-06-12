@@ -3,11 +3,10 @@
 import functools
 
 import flask
-from google.auth.transport import requests
-from google.oauth2 import id_token
+import requests
+import sys
 
 from .errors import *
-
 
 def test_auth():
     """
@@ -18,25 +17,46 @@ def test_auth():
     except:
         return "test_user@example.com"
 
-def google_auth(google_oauth_clientID: str):
+def normal_auth(google_oauth_clientID: str) -> str:
     """
     Authenticate using google authentication
     """
-    token = flask.request.headers.get("Authorization")[len("Bearer "):]
+    token = flask.request.headers.get("Authorization")[len("Bearer "):] # type: str
 
     if token is None:
-        raise InvalidCredentialsError()
+        raise InvalidCredentialsError("No token provided")
 
-    try:
-        req_timeout = functools.partial(requests.Request(), timeout=3)
-        token_info = id_token.verify_oauth2_token(token, req_timeout, google_oauth_clientID)
-    except ValueError as e:
-        raise InvalidCredentialsError() from e
+    if token.find("=") == -1:
+        raise InvalidCredentialsError("Token did not contain an '=' with the token provider")
 
-    if token_info["hd"] != "sanger.ac.uk":
-        raise InvalidCredentialsError()
+    token_type = token[:token.find("=")]
+    token_content = token[token.find("=")+1:]
 
-    if token_info["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
-        raise InvalidCredentialsError()
+    if token_type == "google":
+        google_info_request = requests.get("https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={
+                "Authorization": f"Bearer {token_content}"
+            }
+        )
 
-    return token_info["email"]
+        if google_info_request.status_code != 200:
+            raise InvalidCredentialsError()
+
+        if google_info_request.json()["hd"] != "sanger.ac.uk":
+             raise InvalidCredentialsError("Google Auth doesn't have an address of sanger.ac.uk")
+
+        return google_info_request.json()["email"]
+    elif token_type == "sanger":
+        sanger_info_request = requests.get("https://www.sanger.ac.uk/oa2/Info",
+            headers={
+                "Authorization": f"Bearer {token_content}"
+            }
+        )
+
+        if sanger_info_request.status_code != 200:
+            raise InvalidCredentialsError()
+
+        return sanger_info_request.json()["email"]
+    else:
+        raise InvalidCredentialsError(f"Unknown token provider {token_type}")
+

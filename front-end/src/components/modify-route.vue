@@ -215,7 +215,7 @@ export default class extends Vue {
         event.preventDefault();
         let success = false;
         try {
-            await this.api.apis.routes.deleteRoute({uuid: this.uuid});
+            await this.api.apis.routes.delete_route({uuid: this.uuid});
             success = true;
         }
         finally{

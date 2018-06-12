@@ -55,19 +55,19 @@ services:
   firewallconfig:
     build: firewall-config
     ports:
-      - "8083:8080"
+      - "8083:80"
     networks: [app]
   frontend:
     build: front-end
     ports:
-      - "8080:80"
+      - "8080:8080"
     depends_on:
       - "configserver"
     networks: [app]
     volumes:
       - "./config.json:/usr/local/apache2/htdocs/config.json"
   db:
-    image: postgres
+    image: postgres:9.6.9-alpine
     environment:
       POSTGRES_PASSWORD:
       POSTGRES_USER: postgres
@@ -81,7 +81,7 @@ services:
     image: adminer
     restart: always
     ports:
-        - 8084:8080
+      - 8084:8080
     networks: [app]
 networks:
   app:

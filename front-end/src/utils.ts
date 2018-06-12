@@ -44,6 +44,6 @@ export var defaultFormData = {
 export var formAttributes = Object.keys(defaultFormData);
 
 export function getRandomHex(bytes = 32){
-    return Array.from(window.crypto.getRandomValues(new Uint8Array(bytes)))
+    return Array.from(<Uint8Array>window.crypto.getRandomValues(new Uint8Array(bytes)))
         .map(x => x.toString(16)).join("")
 }

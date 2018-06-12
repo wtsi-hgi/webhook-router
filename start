@@ -1,0 +1,57 @@
+#!/bin/bash
+set -euo pipefail
+
+launch_type=$1
+
+if [[ "${launch_type}" = "test" ]]; then
+    if [ -z "${POSTGRES_PASSWORD+defined}" ]; then
+        POSTGRES_PASSWORD=$(docker run -it frapsoft/openssl rand -base64 15 | tr -dC "[:print:]")
+        export POSTGRES_PASSWORD
+    fi
+
+    function finish {
+        echo "--"
+        echo "docker-compose logs"
+        docker-compose logs
+    }
+
+    trap finish EXIT
+
+    echo "-------------------------------"
+    echo "Starting up docker-compose ..."
+    echo "-------------------------------"
+    docker-compose -f docker-compose.yml -f docker-compose.test.yml up -d
+
+    echo "-------------------------------"
+    echo "Testing the configserver ..."
+    echo "-------------------------------"
+    docker-compose exec configserver sh -c "cd /config-server && pip install -r test_requirements.txt && pytest test.py"
+
+    echo "-------------------------------"
+    echo "Testing the router ..."
+    echo "-------------------------------"
+    docker-compose exec router sh -c "cd /router && npm run-script build && npm run-script test"
+
+    echo "-------------------------------"
+    echo "Testing the firewall-config server ..."
+    echo "-------------------------------"
+    docker-compose exec firewallconfig sh -c "cd /firewall-config/ && pip install -r test_requirements.txt && pytest test.py"
+
+    echo "All tests succeeded!"
+elif [[ "${launch_type}" = "dev" ]]; then
+    if [ -z "${POSTGRES_PASSWORD+defined}" ]; then
+        POSTGRES_PASSWORD=$(docker run -it frapsoft/openssl rand -base64 15 | tr -dC "[:print:]");
+        export POSTGRES_PASSWORD
+    fi
+
+    docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+elif [[ "${launch_type}" = "production" ]]; then
+    if [ -z "${POSTGRES_PASSWORD+defined}" ]; then
+        echo "Please define the POSTGRES_PASSWORD."
+        exit 1
+    fi
+
+    docker-compose -f docker-compose.yml
+else
+    echo "Unknown launch type: ${launch_type}. Available launch types: test, dev and production"
+fi

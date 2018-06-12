@@ -3,18 +3,6 @@
     "configServer": "http://127.0.0.1:8081",
     "routingServer": "http://127.0.0.1:8082",
     "adminServer": "http://127.0.0.1:8083",
-    "clientId": "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com",
-    "auth_methods": [
-        {
-            "type": "google",
-            "name": "google_auth",
-            "clientId": "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com"
-        },
-        {
-            "type": "normal",
-            "name": "sanger_auth",
-            "auth_url": "https://www.sanger.ac.uk/oa2/Auth",
-            "token_url": "https://www.sanger.ac.uk/oa2/Token"
-        }
-    ]
+    "googleClientId": "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com",
+    "sangerClientId": "-4d8mHm_RF2OnaqJgczhqA"
 }

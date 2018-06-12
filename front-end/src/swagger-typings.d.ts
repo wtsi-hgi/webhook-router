@@ -56,6 +56,7 @@ interface SwaggerResponse<Type> {
 interface SwaggerAPI<APIType extends BasicAPI> {
     spec: SwaggerSpec;
     originalSpec: SwaggerSpec;
+    authorizations: object;
     errors: any;
     apis: APIType
 }

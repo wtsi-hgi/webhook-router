@@ -6,9 +6,10 @@ from flask_cors import CORS
 import flask
 from http import HTTPStatus
 import json
-from .auth import google_auth
+from .auth import normal_auth
 from .errors import *
 from functools import partial
+import sys
 
 class Rule:
     def __init__(self, from_port: int, to_port: int, cidr: str):
@@ -95,6 +96,9 @@ class ConnextionDespacher:
 
         return self.config.is_admin(email)
 
+def eprint(s):
+    print(s, file=sys.stderr)
+
 class FirewallConfigServer:
     def resolve_name(self, name: str):
         return getattr(self.despatcher, name)
@@ -104,6 +108,7 @@ class FirewallConfigServer:
         For a given Error class, sets response that would be returned
         """
         def handler(error):
+            eprint(error.__repr__())
             return flask.make_response(flask.jsonify({
                 "error": error_message,
                 "error_num": error_num
@@ -128,7 +133,7 @@ class FirewallConfigServer:
 
 def main():
     server = FirewallConfigServer(
-        partial(google_auth, "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
+        partial(normal_auth, "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
     )
 
     server.app.run(port=80, host="0.0.0.0")
