@@ -99,6 +99,10 @@ export default class OAuthHelper {
     }
 
     private addRefreshTokenInterval(){
+        if(this.tokenExpireTime!.valueOf() - RELOAD_PADDING < Date.now()){
+            this.refresh();
+        }
+
         this.refreshIntervalHandle = setInterval(() => {
             if(this.tokenExpireTime!.valueOf() - RELOAD_PADDING < Date.now()){
                 this.refresh();
@@ -107,16 +111,16 @@ export default class OAuthHelper {
     }
 
     async loadTryGetToken(): Promise<string | undefined> {
-        const tokenStr = localStorage.getItem(this.localStorageName);
+        const tokenJSONStr = localStorage.getItem(this.localStorageName);
 
-        if(tokenStr !== null){
-            const token = JSON.parse(tokenStr);
+        if(tokenJSONStr !== null){
+            let token = JSON.parse(tokenJSONStr);
+            token.expires_in = new Date(token.expires_in);
 
             this.changeToken(
                 this.auth.createToken(token)
             )
 
-            await this.refresh();
             this.addRefreshTokenInterval();
 
             return this.token;
@@ -134,44 +138,50 @@ export default class OAuthHelper {
         return this.auth.createToken(objectify(tmpURL.searchParams));
     }
 
-    async promptLogin(): Promise<string | undefined>{
-        console.log(`Navigating to ${this.auth.token.getUri()}`)
-        const popupWindow = createCenterPopup(this.auth.token.getUri(), camelCase(this.name) + " Auth", 500, 500);
-
-        const resolvedURL = <Location>(await new Promise((resolve, reject) => {
+    resolveUrlFromWindow(newWindow: Window): Promise<Location>{
+        return new Promise((resolve, _) => {
             const intervalHandle = setInterval(() => {
                 let crossOriginBlocked = false;
                 try{
-                    popupWindow.location.href
+                    newWindow.location.href
                 }
                 catch{
                     crossOriginBlocked = true;
                 }
 
-                if(!crossOriginBlocked && popupWindow.location.href != undefined && popupWindow.location.href.search(location.origin) != -1){
-                    resolve(popupWindow.location);
+                if(!crossOriginBlocked && newWindow.location.href != undefined && newWindow.location.href.search(location.origin) != -1){
+                    resolve(newWindow.location);
 
                     clearInterval(intervalHandle);
                 }
-                if(popupWindow.closed == true){
+                if(newWindow.closed == true){
                     resolve(undefined);
 
                     clearInterval(intervalHandle);
                 }
             }, 500);
-        }));
+        })
+    }
 
-        console.log("resolved to " + resolvedURL)
+    async setTokenFromWindow(newWindow: Window){
+        const resolvedURL = await this.resolveUrlFromWindow(newWindow);
 
         if(!resolvedURL){
-            console.log("returning undefined")
             return undefined;
         }
 
-
         const token = this.getTokenFromURL(resolvedURL, this.nonse);
+        token.data.expires_in = (<any>token).expires;
+
         localStorage.setItem(this.localStorageName, JSON.stringify(token.data));
         this.changeToken(token);
+    }
+
+    async promptLogin(): Promise<string | undefined>{
+        const popupWindow = createCenterPopup(this.auth.token.getUri(), camelCase(this.name) + " Auth", 500, 500);
+        console.log(this.auth.token.getUri())
+
+        await this.setTokenFromWindow(popupWindow);
 
         popupWindow.close();
 
@@ -184,11 +194,14 @@ export default class OAuthHelper {
     }
 
     private async refresh(): Promise<string> {
-        if(notNully(this.clientOauth2Token).refreshToken !== undefined){
-            const token = await this.clientOauth2Token!.refresh();
+        let frame = document.createElement("iframe");
+        frame.src = this.auth.token.getUri();
+        frame.style.display = "none";
+        document.body.appendChild(frame);
 
-            this.changeToken(token);
-        }
+        await this.setTokenFromWindow(notNully(frame.contentWindow));
+
+        document.body.removeChild(frame);
 
         return <string>this.token;
     }

@@ -17,4 +17,4 @@ RUN touch logs.log
 ADD . /router
 RUN npm run-script build
 
-CMD bash ./start.sh
+CMD node router.js --port 80 --host 0.0.0.0 --configServer $CONFIGSERVER_LOCATION

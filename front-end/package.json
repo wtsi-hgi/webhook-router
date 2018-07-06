@@ -7,7 +7,8 @@
     "dev": "webpack-dev-server",
     "gen-cs-api": "swagger-codegen generate -i ../config-server/swagger.yaml -l typescript-fetch -o src --additional-properties supportsES6=True --additional-properties modelPropertyNaming=original",
     "gen-api": "npm run-script gen-cs-api && npm run-script gen-fc-api",
-    "build": "NODE_ENV='production' webpack"
+    "build": "NODE_ENV='production' webpack",
+    "build-dev": "webpack"
   },
   "author": "Thomas Hickman",
   "license": "MIT",
@@ -24,7 +25,7 @@
     "jasmine": "^2.99.0",
     "style-loader": "^0.19.1",
     "ts-loader": "^3.5.0",
-    "typescript": "^2.9.1",
+    "typescript": "^2.9.2",
     "vue-loader": "^13.7.2",
     "vue-style-loader": "^3.1.2",
     "vue-template-compiler": "^2.5.16",

@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
+if [ "$#" -ne 1 ]; then
+    echo "Please specify a launch type: test, dev or build-dev"
+    exit 1
+fi
+
 launch_type=$1
 
 if [[ "${launch_type}" = "test" ]]; then
@@ -39,12 +44,7 @@ if [[ "${launch_type}" = "test" ]]; then
 
     echo "All tests succeeded!"
 elif [[ "${launch_type}" = "dev" ]]; then
-    if [ -z "${POSTGRES_PASSWORD+defined}" ]; then
-        POSTGRES_PASSWORD=$(docker run -it frapsoft/openssl rand -base64 15 | tr -dC "[:print:]");
-        export POSTGRES_PASSWORD
-    fi
-
-    docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+    POSTGRES_PASSWORD=password docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 elif [[ "${launch_type}" = "production" ]]; then
     if [ -z "${POSTGRES_PASSWORD+defined}" ]; then
         echo "Please define the POSTGRES_PASSWORD."
@@ -52,6 +52,8 @@ elif [[ "${launch_type}" = "production" ]]; then
     fi
 
     docker-compose -f docker-compose.yml
+elif [[ "${launch_type}" = "build-dev" ]]; then
+    docker-compose -f docker-compose.yml -f docker-compose.dev.yml build
 else
     echo "Unknown launch type: ${launch_type}. Available launch types: test, dev and production"
 fi

@@ -1,8 +1,5 @@
-import cp = require("child_process");
 import http = require("http");
 import net = require("net");
-import https = require("https");
-import os = require("os");
 import axios, {AxiosError} from "axios";
 
 var testServerHandle: net.Server;

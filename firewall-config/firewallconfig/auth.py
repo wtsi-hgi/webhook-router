@@ -59,4 +59,3 @@ def normal_auth(google_oauth_clientID: str) -> str:
         return sanger_info_request.json()["email"]
     else:
         raise InvalidCredentialsError(f"Unknown token provider {token_type}")
-
