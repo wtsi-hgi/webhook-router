@@ -51,7 +51,7 @@ class ConfigServer:
             time.sleep(1)
 
         proxy_db.initialize(db)
-        db.create_tables([Route, UserLink], True)
+        db.create_tables([Route, UserLink], safe=True)
         db.close()
 
         user_link_dm = UserLinkDataMapper()
