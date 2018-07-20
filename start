@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [ "$#" -ne 1 ]; then
-    echo "Please specify a launch type: test, dev or build-dev"
+    echo "Please specify a launch type: test, dev, build-dev or production"
     exit 1
 fi
 
@@ -51,7 +51,7 @@ elif [[ "${launch_type}" = "production" ]]; then
         exit 1
     fi
 
-    docker-compose -f docker-compose.yml
+    docker-compose -f docker-compose.yml up -d
 elif [[ "${launch_type}" = "build-dev" ]]; then
     docker-compose -f docker-compose.yml -f docker-compose.dev.yml build
 else
