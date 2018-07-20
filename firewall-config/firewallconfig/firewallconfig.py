@@ -1,15 +1,19 @@
-from urllib.parse import urlparse
-import socket
+import argparse
 import ipaddress
-import connexion
-from flask_cors import CORS
-import flask
-from http import HTTPStatus
 import json
+import socket
+import sys
+from functools import partial
+from http import HTTPStatus
+from urllib.parse import urlparse
+
+import connexion
+import flask
+from flask_cors import CORS
+
 from .auth import normal_auth
 from .errors import *
-from functools import partial
-import sys
+
 
 class Rule:
     def __init__(self, from_port: int, to_port: int, cidr: str):
@@ -115,7 +119,8 @@ class FirewallConfigServer:
             }), error_code)
         self.app.add_error_handler(error_class, handler)
 
-    def __init__(self, auth, ioInterface=FileInterface("config.json")):
+    def __init__(self, auth, firewall_config_path):
+        ioInterface = FileInterface(firewall_config_path)
         self.despatcher = ConnextionDespacher(ioInterface, auth)
 
         self.app = connexion.App(__name__, specification_dir=".", server='tornado')
@@ -132,8 +137,18 @@ class FirewallConfigServer:
         )
 
 def main():
+    parser = argparse.ArgumentParser(__name__)
+    parser.add_argument("--config-file", help="Location of a JSON file which contains non secret configuration information", default="config.json")
+    parser.add_argument("--filewall-config-file", help="Location of a JSON which will be used to write the firewall config data", default="firewall_config.json")
+    args = parser.parse_args()
+
+    # HACK: this is a hack, need to be replaced by a paramterz
+    with open(args.config_file) as configJSON_fp:
+        configJSON = json.load(configJSON_fp)
+
     server = FirewallConfigServer(
-        partial(normal_auth, "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
+        partial(normal_auth, configJSON["googleClientId"]),
+        args.filewall_config_file
     )
 
     server.app.run(port=80, host="0.0.0.0")

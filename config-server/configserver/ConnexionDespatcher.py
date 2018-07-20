@@ -46,12 +46,14 @@ class ConnexionDespatcher:
                         route_data_mapper: RouteDataMapper,
                         user_link_data_mapper: UserLinkDataMapper,
                         statistic_queryier: StatisticQueryier,
-                        logger: ConfigServerLogger):
+                        logger: ConfigServerLogger,
+                        google_oauth_client_id: str):
         self._use_test_auth = use_test_auth
         self._route_data_mapper = route_data_mapper
         self._user_link_data_mapper = user_link_data_mapper
         self._statistic_queryier = statistic_queryier
         self._logger = logger
+        self._google_oauth_client_id = google_oauth_client_id
 
     def resolve_name(self, name: str):
         """
@@ -85,7 +87,7 @@ class ConnexionDespatcher:
                     if self._use_test_auth:
                         user = test_auth()
                     else:
-                        user = normal_auth("859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
+                        user = normal_auth(self._google_oauth_client_id)
 
                 if "user" in func.__code__.co_varnames:
                     resp = func(*args, user=user, **kwargs)

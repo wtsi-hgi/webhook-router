@@ -1,0 +1,1 @@
+{"firewallRules": [{"from_port": 1, "to_port": 9000, "cidr": "0.0.0.0/32"}], "adminUsers": ["th10@sanger.ac.uk"]}

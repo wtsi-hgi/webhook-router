@@ -68,7 +68,8 @@ class ConfigServer:
             route_dm,
             user_link_dm,
             stat_queryier,
-            logger
+            logger,
+            config_JSON["googleClientId"]
         )
 
         self.app = connexion.App(__name__, specification_dir=".", server='tornado', auth_all_paths=(not use_test_auth))
@@ -172,7 +173,7 @@ def main():
     parser.add_argument("--verbose", help="Enable verbose mode", action="store_true")
     parser.add_argument("--port", help="Port to serve requests over", type=int, default=8081)
     parser.add_argument("--host", help="Host to serve requests from", default="127.0.0.1")
-    parser.add_argument("--config_JSON", help="Location of a JSON file which contains non secret configuration information", default="config.json")
+    parser.add_argument("--config-JSON", help="Location of a JSON file which contains non secret configuration information", default="config.json")
 
     options = parser.parse_args()
 
