@@ -82,7 +82,17 @@ export default class Inital extends Vue {
         template: 3, // 3 = indeterminate progress bar
         parent: 'body'
     });
-    configJSON: Promise</*typeof import("../../config.json")*/any> = (async () => await (await fetch("config.json")).json())()
+    configJSONFulfiledObject: any | undefined = undefined;
+    // TODO: the below method is needed due to some bug somewhere, if would be good if you had to do this.
+    configJSON: Promise</*typeof import("../../config.json")*/any> = (async () => {
+        let x = await (await fetch("config.json")).json()
+        this.setConfigJSONFO(x);
+        return x;
+    })()
+
+    setConfigJSONFO(n){
+        this.configJSONFulfiledObject = n;
+    }
 
     /**
      * Padding time for a reload of a token.
@@ -134,33 +144,53 @@ export default class Inital extends Vue {
         this.state = "signed_in";
     }
 
+    // TODO: abstract out the functionality below
+
     async sangerLoginButtonPressed(){
-        const sangerOAuthHelper = new OAuthHelper(
+        if(this.configJSONFulfiledObject == undefined){
+            throw Error("Please wait to login.")
+        }
+
+        const googleOAuthHelper = new OAuthHelper(
             "sanger",
-            (await this.configJSON).sangerClientId,
+            this.configJSONFulfiledObject.sangerClientId,
             "https://www.sanger.ac.uk/oa2/Auth",
             ["profile"]
         );
-        this.progressBar.start();
-        if(await sangerOAuthHelper.promptLogin() !== undefined)
-            await this.logon(sangerOAuthHelper);
-        this.progressBar.end();
+
+        const promptLoginPromise = googleOAuthHelper.promptLogin();
+
+        return (async() => {
+            this.progressBar.start();
+            if(await promptLoginPromise !== undefined)
+                await this.logon(googleOAuthHelper);
+            this.progressBar.end();
+        })()
     }
 
-    async googleLoginButtonPressed() {
+    googleLoginButtonPressed() {
+        if(this.configJSONFulfiledObject == undefined){
+            throw Error("Please wait to login.")
+        }
+
         const googleOAuthHelper = new OAuthHelper(
             "google",
-            (await this.configJSON).googleClientId,
+            this.configJSONFulfiledObject.googleClientId,
             "https://accounts.google.com/o/oauth2/auth",
             ["profile", "email"],
             {
                 "hd": "sanger.ac.uk"
             }
         );
-        this.progressBar.start();
-        if(await googleOAuthHelper.promptLogin() !== undefined)
-            await this.logon(googleOAuthHelper);
-        this.progressBar.end();
+
+        const promptLoginPromise = googleOAuthHelper.promptLogin();
+
+        return (async() => {
+            this.progressBar.start();
+            if(await promptLoginPromise !== undefined)
+                await this.logon(googleOAuthHelper);
+            this.progressBar.end();
+        })()
     }
 
 

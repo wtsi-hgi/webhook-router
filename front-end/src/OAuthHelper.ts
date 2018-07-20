@@ -177,15 +177,18 @@ export default class OAuthHelper {
         this.changeToken(token);
     }
 
-    async promptLogin(): Promise<string | undefined>{
+    promptLogin(): Promise<string | undefined>{
+        console.log(this.auth.token.getUri());
+        // NOTE: this needs to be not in a Promise function - it needs to be directly called from a user action
         const popupWindow = createCenterPopup(this.auth.token.getUri(), camelCase(this.name) + " Auth", 500, 500);
-        console.log(this.auth.token.getUri())
 
-        await this.setTokenFromWindow(popupWindow);
+        return (async () => {
+            await this.setTokenFromWindow(popupWindow);
 
-        popupWindow.close();
+            popupWindow.close();
 
-        return this.token;
+            return this.token;
+        })()
     }
 
     async logout() {
