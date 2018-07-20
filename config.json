@@ -1,7 +1,7 @@
 {
     "frontEnd": "http://localhost:8080",
     "configServer": "http://127.0.0.1:8081",
-    "routingServer": "http://127.0.0.1:8082",
+    "routingServer": "http://127.0.0.1:8001",
     "adminServer": "http://127.0.0.1:8083",
     "googleClientId": "859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com",
     "sangerClientId": "-4d8mHm_RF2OnaqJgczhqA"
