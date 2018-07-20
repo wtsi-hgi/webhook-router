@@ -71,7 +71,7 @@ class ConnexionDespatcher:
         @wraps(func)
         def connextion_wrapper(*args, **kwargs):
             """
-            A warpper for all routing functions, which auths the request
+            A wrapper for all routing functions, which auths the request
             if needed, passing `user` as a parameter if needed and logs the request.
 
             This also automatically adds NO_CONTENT if needed.
@@ -81,10 +81,11 @@ class ConnexionDespatcher:
                 # NOTE: Connexion implements oauth, but we can't use it, as it doesn't
                 # work with Google's method of oauth (the token has to be passed in parameters).
                 # See https://github.com/zalando/connexion/issues/555.
-                if self._use_test_auth:
-                    user = test_auth()
-                else:
-                    user = normal_auth("859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
+                if name != "get_by_token":
+                    if self._use_test_auth:
+                        user = test_auth()
+                    else:
+                        user = normal_auth("859663336690-q39h2o7j9o2d2vdeq1hm1815uqjfj5c9.apps.googleusercontent.com")
 
                 if "user" in func.__code__.co_varnames:
                     resp = func(*args, user=user, **kwargs)

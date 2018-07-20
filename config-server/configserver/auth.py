@@ -21,13 +21,16 @@ def normal_auth(google_oauth_clientID: str) -> str:
     """
     Authenticate using google authentication
     """
+    if flask.request.headers.get("Authorization") is None:
+        raise InvalidCredentialsError("No Authorization header provided.")
+
     token = flask.request.headers.get("Authorization")[len("Bearer "):] # type: str
 
     if token is None:
-        raise InvalidCredentialsError("No token provided")
+        raise InvalidCredentialsError("No token provided.")
 
     if token.find("=") == -1:
-        raise InvalidCredentialsError("Token did not contain an '=' with the token provider")
+        raise InvalidCredentialsError("Token did not contain an '=' with the token provider.")
 
     token_type = token[:token.find("=")]
     token_content = token[token.find("=")+1:]
@@ -43,7 +46,7 @@ def normal_auth(google_oauth_clientID: str) -> str:
             raise InvalidCredentialsError()
 
         if google_info_request.json()["hd"] != "sanger.ac.uk":
-             raise InvalidCredentialsError("Google Auth doesn't have an address of sanger.ac.uk")
+             raise InvalidCredentialsError("Google Auth doesn't have an address of sanger.ac.uk.")
 
         return google_info_request.json()["email"]
     elif token_type == "sanger":
@@ -58,5 +61,4 @@ def normal_auth(google_oauth_clientID: str) -> str:
 
         return sanger_info_request.json()["email"]
     else:
-        raise InvalidCredentialsError(f"Unknown token provider {token_type}")
-
+        raise InvalidCredentialsError(f"Unknown token provider {token_type}.")

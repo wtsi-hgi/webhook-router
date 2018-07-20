@@ -20,10 +20,10 @@ const SUCCESS_LOG_CODE = 1;
 
 // Functions for writing errors as a response.
 const writeBadRequest = (resp: any) => writeError("400 Bad Request", 400, resp);
-const writeNotFound = (resp: any) => writeError("404 Not found", 404, resp);
+const writeNotFound = (resp: any) => writeError("404 Route Not found", 404, resp);
 const writeMethodNotAllowed = (resp: any) => writeError("405 Method Not Allowed", 405, resp);
-const writeInternalError = (resp: any) => writeError("500 Internal server error", 500, resp);
-const writeInternalErrorFromConfigServer = (resp: any) => writeError("500 Internal server error from configserver", 500, resp);
+const writeInternalError = (resp: any) => writeError("500 Internal Server Error", 500, resp);
+const writeInternalErrorFromConfigServer = (resp: any) => writeError("500 Unexpected Config Server Response.", 500, resp);
 const writeBadGateway = (resp: any) => writeError("502 Bad Gateway", 502, resp);
 const writeServiceUnavailable = (resp: any) => writeError("503 Service Unavailable", 503, resp);
 
@@ -78,7 +78,7 @@ class RouteMethodNotAllowed extends AbstractRouterError{
 
 class ConfigServerError extends AbstractRouterError{
     constructor(error: any){
-        super("Config server error.", {error})
+        super("Config server error.", error)
     }
 
     writeHttpResponse = writeInternalErrorFromConfigServer;
@@ -126,20 +126,22 @@ async function getRouteFromToken(token: string){
         var configServerJSON = (await axios.get(`${args.configServer}/routes/token/${token}`)).data
     }
     catch(error){
-        console.error(error.constructor)
-        // if(error instanceof Response){
-        //     if(typeof configServerJSON.error == "string"){
-        //         if(configServerJSON.error_num == INVALID_ROUTE_TOKEN_ERROR){
-        //             throw new InvalidTokenError(token);
-        //         }
-        //         else{
-        //             throw new ConfigServerError(configServerJSON.error)
-        //         }
-        //     }
-        // }
-        // else{
-            throw error;
-        //}
+        if(error.request !== undefined){
+            // axios error
+            if(error.response.data.error_num == INVALID_ROUTE_TOKEN_ERROR){
+                throw new InvalidTokenError(token);
+            }
+            else{
+                throw new ConfigServerError({
+                    ...error.response.data,
+                    status_code: error.response.status,
+                    request_url: error.config.url,
+                    request_method: error.config.method
+                })
+            }
+        }
+
+        throw error;
     }
 
     return <Route>configServerJSON;
