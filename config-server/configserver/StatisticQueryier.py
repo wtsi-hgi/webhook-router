@@ -68,6 +68,5 @@ class StatisticQueryier:
                 "successes": responses[i*2].hits.total,
                 "failures": responses[i*2 + 1].hits.total
             })
-        print(json.dumps(route_stats))
 
         return route_stats
