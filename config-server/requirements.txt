@@ -35,7 +35,6 @@ python-dateutil==2.6.1
 python-json-logger==0.1.8
 PyYAML==3.12
 requests==2.18.4
-rope==0.10.7
 rsa==3.4.2
 six==1.11.0
 swagger-spec-validator==2.1.0
