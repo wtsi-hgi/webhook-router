@@ -10,7 +10,9 @@
   "scripts": {
     "test": "jasmine test.js",
     "postinstall": "npm run-script build",
-    "build": "tsc"
+    "build": "tsc",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "author": "Thomas Hickman",
   "license": "MIT",
@@ -21,7 +23,8 @@
     "npm": "^6.1.0",
     "router": "^1.3.2",
     "winston": "^2.4.0",
-    "winston-elasticsearch": "^0.6.0"
+    "winston-elasticsearch": "^0.6.0",
+    "snyk": "^1.161.1"
   },
   "devDependencies": {
     "@types/argparse": "^1.0.33",
@@ -32,5 +35,6 @@
     "@types/winston": "^2.3.7",
     "jasmine": "^2.8.0",
     "typescript": "^2.5.3"
-  }
+  },
+  "snyk": true
 }
