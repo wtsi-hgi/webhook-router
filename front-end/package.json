@@ -36,7 +36,7 @@
     "@zalando/oauth2-client-js": "0.0.18",
     "bootstrap": "^4.1.1",
     "bootstrap-social": "^5.1.1",
-    "bootstrap-vue": "^1.5.1",
+    "bootstrap-vue": "^2.0.0",
     "browser-unhandled-rejection": "^1.0.2",
     "client-oauth2": "^4.2.1",
     "css-loader": "^0.28.11",
