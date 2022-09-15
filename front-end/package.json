@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@zalando/oauth2-client-js": "0.0.18",
-    "bootstrap": "^4.1.1",
+    "bootstrap": "^4.3.1",
     "bootstrap-social": "^5.1.1",
     "bootstrap-vue": "^1.5.1",
     "browser-unhandled-rejection": "^1.0.2",
