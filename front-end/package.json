@@ -40,7 +40,7 @@
     "browser-unhandled-rejection": "^1.0.2",
     "client-oauth2": "^4.2.1",
     "css-loader": "^0.28.11",
-    "fast-json-patch": "^2.0.6",
+    "fast-json-patch": "^3.1.1",
     "fuse.js": "^3.2.1",
     "gapi-client": "0.0.3",
     "isomorphic-fetch": "^2.2.1",
